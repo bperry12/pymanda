@@ -2,6 +2,7 @@ import pytest
 from pymanda import ChoiceData
 import pandas
 import numpy
+
 @pytest.fixture
 def psa_data():
     '''create data for psa analysis'''
@@ -33,7 +34,6 @@ def psa_data():
     zips += [8 for x in range(9)] #in 90 psa
     zips += [3 for x in range(4)] #in 75 psa
     zips += [5 for x in range(2)] #out of psa
-
     #corp z
     zips += [7 for x in range(10)] #in 90 psa
     zips += [10 for x in range(9)] #in 90 psa
@@ -41,15 +41,52 @@ def psa_data():
     zips += [9 for x in range(1)] #out of psa
     zips += ["" for x in range(1)] #out of psa
     
-    
-    psa_data = pd.DataFrame({'corporation': })
+    psa_data = pd.DataFrame({'corporation': corps,
+                             'choice' : choices,
+                             "geography": zips})
+    return psa_data
 
-
-def test_ChoiceData_BadInput():
+## Tests for ChoiceData Initialization
+def test_BadInput():
     '''Test for error catching bad input'''
     with pytest.raises(TypeError):
         ChoiceData(["bad", "input"]) 
 
-def test_ChoiceData_GoodInput():
-    '''test for accepting pandas dataframe'''
+def test_AllMissing():
+    '''test for empty dataframe'''
+    df_empty = pd.DataFrame({'corporation': [],
+                             'choice' : [],
+                             "geography": []})
+    with pytest.raise(ValueError):
+        ChoiceData(df_empty, 'choice', corp_var='corporation', geog_var='geography')
+
+def test_ChoiceMissing(psa_data):
+    '''test for an observation missing choice'''
+    df_miss = pd.DataFrame({'corporation': [""],
+                             'choice' : [""],
+                             "geography": [""]})
+    df_miss = pd.concat([df_miss, psa_data])
+    with pytest.raise(ValueError):
+        ChoiceData(df_miss, 'choice', corp_var='corporation', geog_var='geography')
+
+def test_BadCorp(psa_data):
+    '''test for corporation parameter not in data'''
+    with pytest.raise(ValueError):
+        ChoiceData(df_miss, 'choice', corp_var='corporations', geog_var='geography')
+
+def test_BadGeo(psa_data):
+    '''test for geog_var parameter nor t in data'''
+    with pytest.raise(ValueError):
+        ChoiceData(df_miss, 'choice', corp_var='corporation', geog_var='zips') 
+        
+def test_UndefinedCorp(psa_data):
+    '''test for empty corporation parameter returning as choice_var'''
+    data = ChoiceData(psa_data, 'choice', geog_var='geography')
+    assert ChoiceData.corp_var== "choice"
+    
+
+## Tests for estimate_psas()
+
+
+
     

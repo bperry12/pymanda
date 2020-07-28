@@ -86,6 +86,10 @@ def test_UndefinedCorp(psa_data):
     
 
 ## Tests for estimate_psas()
+@oytest.fixture
+def cd_psa(psa_data):
+    cd_psa = ChoiceData(psa_data, "choice", corp_var='corporation', geog_var='zips')
+    return cd_psa
 
 
 

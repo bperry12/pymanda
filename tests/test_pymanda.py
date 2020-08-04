@@ -43,7 +43,7 @@ def psa_data():
     
     psa_data = pd.DataFrame({'corporation': corps,
                              'choice' : choices,
-                             "geography": zips)
+                             "geography": zips})
     return psa_data
 
 @pytest.fixture()
@@ -168,3 +168,19 @@ def test_MultipleThresholds(onechoice_data)
                    'a_.7': [1]}
     
     assert psa_dict == answer_dict
+
+##Tests for restrict_data
+def test_RestrictData(psa_data, cd_psa):
+    cd_psa.restrict_data(psa_data['corporation']=='x')
+    
+    restricted_data = psa_data[psa_data['corporation']=='x']
+    cd_restricted = ChoiceData(restricted_data, "choice", corp_var='corporation', geog_var='zips')
+    assert cd_psa == cd_restricted
+    
+def test_BadSeries(cd_psa):
+    flag_series = np.where(psa_data['corporation']=='x', 1, 0)
+    with pytest.raises(TypeError):
+        cd_psa.restrict_data(flag_series)
+
+
+

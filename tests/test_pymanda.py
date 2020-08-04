@@ -30,9 +30,9 @@ def psa_data():
     zips += [5 for x in range(3)] # in 90 psa
     zips += [6 for x in range(2)] # out of psa
     #corp y
-    zips += [7 for x in range(10)] #in 90 psa
-    zips += [8 for x in range(9)] #in 90 psa
-    zips += [3 for x in range(4)] #in 75 psa
+    zips += [7 for x in range(10)] #in 75 psa
+    zips += [8 for x in range(9)] #in 75 psa
+    zips += [3 for x in range(4)] #in 90 psa
     zips += [5 for x in range(2)] #out of psa
     #corp z
     zips += [7 for x in range(10)] #in 75 psa
@@ -150,7 +150,7 @@ def test_1corp(cd_psa):
     assert answer_dict==psa_dict
     
 def test_1corp_weight(onechoice_data):
-    ''' Estimate PSAs for 1 corporation with weight var'''
+    ''' Estimate PSAs for 1 corporation with weight var and custom threshold'''
     cd_onechoice = ChoiceData('choice', geog_var='geography', weight_var='weight')
     
     psa_dict = cd_onechoice.estimate_psa(['a'], thresholds=.6)
@@ -159,3 +159,12 @@ def test_1corp_weight(onechoice_data):
     
     assert psa_dict==answer_dict
     
+def test_MultipleThresholds(onechoice_data)
+    cd_onechoice = ChoiceData('choice', geog_var='geography', weight_var='weight')
+    
+    psa_dict = cd_onechoice.estimate_psa(['a'], thresholds = .6)
+    
+    answer_dict = {'a_.6': [1,2],
+                   'a_.7': [1]}
+    
+    assert psa_dict == answer_dict

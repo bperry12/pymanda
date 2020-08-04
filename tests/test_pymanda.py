@@ -93,12 +93,12 @@ def test_ChoiceMissing(psa_data):
 
 def test_BadCorp(psa_data):
     '''test for corporation parameter not in data'''
-    with pytest.raises(ValueError):
+    with pytest.raises(KeyError):
         ChoiceData(df_miss, 'choice', corp_var='corporations', geog_var='geography')
 
 def test_BadGeo(psa_data):
-    '''test for geog_var parameter nor t in data'''
-    with pytest.raises(ValueError):
+    '''test for geog_var parameter not in data'''
+    with pytest.raises(KeyError):
         ChoiceData(df_miss, 'choice', corp_var='corporation', geog_var='zips') 
         
 def test_UndefinedCorp(psa_data):
@@ -116,7 +116,7 @@ def cd_psa(psa_data):
 def test_define_geogvar(psa_data):
     '''Test for error raising if geography variable is not defined'''
     bad_cd = ChoiceData(psa_data, "choice", corp_var='corporation')
-    with pytest.raises(ValueError):
+    with pytest.raises(KeyError):
         bad_cd.estimate_psa(["x"])
 
 def test_BadThreshold(cd_psa):

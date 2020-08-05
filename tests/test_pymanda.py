@@ -94,17 +94,17 @@ def test_ChoiceMissing(psa_data):
 def test_BadCorp(psa_data):
     '''test for corporation parameter not in data'''
     with pytest.raises(KeyError):
-        ChoiceData(df_miss, 'choice', corp_var='corporations', geog_var='geography')
+        ChoiceData(psa_data, 'choice', corp_var='corporations', geog_var='geography')
 
 def test_BadGeo(psa_data):
     '''test for geog_var parameter not in data'''
     with pytest.raises(KeyError):
-        ChoiceData(df_miss, 'choice', corp_var='corporation', geog_var='zips') 
+        ChoiceData(psa_data, 'choice', corp_var='corporation', geog_var='zips') 
         
 def test_UndefinedCorp(psa_data):
     '''test for empty corporation parameter returning as choice_var'''
     data = ChoiceData(psa_data, 'choice', geog_var='geography')
-    assert ChoiceData.corp_var== "choice"
+    assert data.corp_var== "choice"
     
 
 ## Tests for estimate_psas()
@@ -159,7 +159,7 @@ def test_1corp_weight(onechoice_data):
     
     assert psa_dict==answer_dict
     
-def test_MultipleThresholds(onechoice_data)
+def test_MultipleThresholds(onechoice_data):
     cd_onechoice = ChoiceData('choice', geog_var='geography', weight_var='weight')
     
     psa_dict = cd_onechoice.estimate_psa(['a'], thresholds = .6)
@@ -181,6 +181,3 @@ def test_BadSeries(cd_psa):
     flag_series = np.where(psa_data['corporation']=='x', 1, 0)
     with pytest.raises(TypeError):
         cd_psa.restrict_data(flag_series)
-
-
-

@@ -65,7 +65,6 @@ def onechoice_data():
     onechoice_data = pd.DataFrame({'choice': choices,
                                    'geography': zips,
                                    'weight' : wght})
-
     return onechoice_data
     
 ## Tests for ChoiceData Initialization

@@ -44,6 +44,7 @@ def psa_data():
     psa_data = pd.DataFrame({'corporation': corps,
                              'choice' : choices,
                              "geography": zips})
+    
     return psa_data
 
 @pytest.fixture()
@@ -109,7 +110,7 @@ def test_UndefinedCorp(psa_data):
 ## Tests for estimate_psas()
 @pytest.fixture
 def cd_psa(psa_data):
-    cd_psa = ChoiceData(psa_data, "choice", corp_var='corporation', geog_var='zips')
+    cd_psa = ChoiceData(psa_data, "choice", corp_var='corporation', geog_var='geography')
     return cd_psa
 
 def test_define_geogvar(psa_data):
@@ -120,8 +121,8 @@ def test_define_geogvar(psa_data):
 
 def test_BadThreshold(cd_psa):
     '''Test for error raising if thresholds are not between 0 and 1'''
-    with pytest.raises(ValueError):
-        cd_psa.estimate_psa(thresholds = [.75, .9, 75])
+    with pytest.raises(TypeError):
+        cd_psa.estimate_psa(['x'], threshold=[.75, .9, 75])
 
 def test_BadCenters(cd_psa):
     '''Test for if psa centers are not in corp_var'''
@@ -132,39 +133,41 @@ def test_3Corp(cd_psa):
     '''Estimate the 3 Corporations in the psa data with default parameters'''
     psa_dict = cd_psa.estimate_psa(['x', 'y', 'z'])
     
-    answer_dict = {'x_.75': [1,2,3],
-                   'x_.9': [1,2,3,4,5],
-                   'y_.75': [7,8],
-                   'y_.9': [7,8,3],
-                   'z_.75': [7,10],
-                   'z_.9' : [7,10,3]}
+    answer_dict = {'x_0.75': [1,2,3],
+                   'x_0.9': [1,2,3,4],
+                   'y_0.75': [7,8],
+                   'y_0.9': [3,7,8],
+                   'z_0.75': [7,10],
+                   'z_0.9' : [3,7,10]}
+    
     assert answer_dict==psa_dict
     
 def test_1corp(cd_psa):
     '''Estimate the 1 Corporation in the psa data with default parameters'''
     psa_dict = cd_psa.estimate_psa(['x'])
     
-    answer_dict = {'x_.75': [1,2,3],
-                   'x_.9': [1,2,3,4,5]}
+    answer_dict = {'x_0.75': [1,2,3],
+                   'x_0.9': [1,2,3,4]}
+    
     assert answer_dict==psa_dict
     
 def test_1corp_weight(onechoice_data):
     ''' Estimate PSAs for 1 corporation with weight var and custom threshold'''
-    cd_onechoice = ChoiceData('choice', geog_var='geography', weight_var='weight')
+    cd_onechoice = ChoiceData(onechoice_data, 'choice', geog_var='geography', wght_var='weight')
     
-    psa_dict = cd_onechoice.estimate_psa(['a'], thresholds=.6)
+    psa_dict = cd_onechoice.estimate_psa(['a'], threshold=.6)
     
-    answer_dict = {'a_.6': [1,2]}
+    answer_dict = {'a_0.6': [1,2]}
     
     assert psa_dict==answer_dict
     
 def test_MultipleThresholds(onechoice_data):
-    cd_onechoice = ChoiceData('choice', geog_var='geography', weight_var='weight')
+    cd_onechoice = ChoiceData(onechoice_data, 'choice', geog_var='geography', wght_var='weight')
     
-    psa_dict = cd_onechoice.estimate_psa(['a'], thresholds = .6)
+    psa_dict = cd_onechoice.estimate_psa(['a'], threshold=[.6, .7])
     
-    answer_dict = {'a_.6': [1,2],
-                   'a_.7': [1]}
+    answer_dict = {'a_0.6': [1,2],
+                   'a_0.7': [1,2,3]}
     
     assert psa_dict == answer_dict
 
@@ -173,10 +176,10 @@ def test_RestrictData(psa_data, cd_psa):
     cd_psa.restrict_data(psa_data['corporation']=='x')
     
     restricted_data = psa_data[psa_data['corporation']=='x']
-    cd_restricted = ChoiceData(restricted_data, "choice", corp_var='corporation', geog_var='zips')
-    assert cd_psa == cd_restricted
+    cd_restricted = ChoiceData(restricted_data, "choice", corp_var='corporation', geog_var='geography')
+    assert cd_restricted.data.equals(restricted_data)
     
-def test_BadSeries(cd_psa):
+def test_BadSeries(cd_psa, psa_data):
     flag_series = np.where(psa_data['corporation']=='x', 1, 0)
     with pytest.raises(TypeError):
         cd_psa.restrict_data(flag_series)

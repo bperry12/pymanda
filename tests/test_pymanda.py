@@ -162,6 +162,7 @@ def test_1corp_weight(onechoice_data):
     assert psa_dict==answer_dict
     
 def test_MultipleThresholds(onechoice_data):
+    ''' Estimate PSAs for multiple custom thresholds'''
     cd_onechoice = ChoiceData(onechoice_data, 'choice', geog_var='geography', wght_var='weight')
     
     psa_dict = cd_onechoice.estimate_psa(['a'], threshold=[.6, .7])
@@ -173,6 +174,7 @@ def test_MultipleThresholds(onechoice_data):
 
 ##Tests for restrict_data
 def test_RestrictData(psa_data, cd_psa):
+    '''Check if restrict data restricts data properly'''
     cd_psa.restrict_data(psa_data['corporation']=='x')
     
     restricted_data = psa_data[psa_data['corporation']=='x']
@@ -180,6 +182,8 @@ def test_RestrictData(psa_data, cd_psa):
     assert cd_restricted.data.equals(restricted_data)
     
 def test_BadSeries(cd_psa, psa_data):
+    '''Restrict_data should only accept boolean series'''
     flag_series = np.where(psa_data['corporation']=='x', 1, 0)
     with pytest.raises(TypeError):
         cd_psa.restrict_data(flag_series)
+

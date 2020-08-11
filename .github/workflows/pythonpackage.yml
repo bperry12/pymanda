@@ -39,7 +39,7 @@ jobs:
     - name: Test with pytest
       run: |
         pip install pytest
-        pytest --cov=pymanda
+        pytest --cov=pymanda/
     - name: Coveralls
       uses: coverallsapp/github-action@master
       with:

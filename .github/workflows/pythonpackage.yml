@@ -42,6 +42,10 @@ jobs:
         pip install pytest-cov
         pip install coveralls
         pytest --cov=pymanda/
+    - name: npm install, make test-coverage
+      run: |
+        npm install
+        make test-coverage
     - name: Coveralls
       uses: coverallsapp/github-action@master
       with:

@@ -41,7 +41,7 @@ jobs:
         pip install pytest
         pip install pytest-cov
         pip install coveralls
-        pytest --cov-append
+        pytest --cov=pymanda/
     - name: Coveralls
       uses: coverallsapp/github-action@master
       with:

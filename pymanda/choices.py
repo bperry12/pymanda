@@ -166,7 +166,15 @@ class ChoiceData():
                 output_dict.update({"{cen}_{a}".format(cen=center, a=alpha) : in_psa})
                 
         return output_dict
-    
+        
+    def restriction_checks(self, restriction):
+        if type(restriction) != pd.core.series.Series:
+            raise TypeError ("Expected type pandas.core.series.Series. Got {}".format(type(restriction)))
+        
+        if restriction.dtype != np.dtype('bool'):
+            raise TypeError ("Expected dtype('bool'). Got {}".format(restriction.dtype))
+        
+        
     def restrict_data(self, restriction):
         """
         Restrict the data is self.data using an inline series
@@ -213,11 +221,97 @@ class ChoiceData():
         7      a          4
         
         """
-        if type(restriction) != pd.core.series.Series:
-            raise TypeError ("Expected type pandas.core.series.Series. Got {}".format(type(restriction)))
-        
-        if restriction.dtype != np.dtype('bool'):
-            raise TypeError ("Expected dtype('bool'). Got {}".format(restriction.dtype))
+        self.restriction_checks(restriction)
         
         self.data = self.data[restriction]
         
+    def calculate_shares(self, psa_dict=None, weight_var=None, restriction=None):
+        """
+        Create Share Table
+
+        Returns
+        -------
+        None.
+
+        """
+
+        if type(psa_dict) != dict or type(psa_dict) is None:
+            raise TypeError ("Expected type dict. Got {}".format(type(psa_dict)))
+            
+        if restriction is not None:
+            self.restriction_checks(restriction)
+        
+        if weight_var is None:
+            weight_var = self.wght_var
+            self.data['count'] = 1
+            self.wght_var = "count"
+            weight_var = self.wght_var
+        else:
+            if weight_var not in self.data.columns():
+                raise KeyError("{} is not a Column in ChoiceData".format(weight_var))
+        
+        if psa_dict is None:
+            psa_dict= {'Base Shares': []}
+        else:
+            if self.geog_var is None:
+                raise ValueError ("geog_var is not defined in ChoiceData")
+            elif self.geog_var not in self.data.columns:
+                raise KeyError("geog_var is not in ChoiceData")
+            
+        if self.corp_var == self.choice_var:
+            group = self.choice_var
+        else:
+            group = [self.corp_var, self.choice_var]
+        
+        output_dict = {}
+        for key in psa_dict.keys():
+            df = self.data
+            if restriction is not None:
+                df = df[restriction]
+            if psa_dict is not None:
+                for geo in psa_dict[key]:
+                     if not df[self.geog_var].isin([geo]).any():
+                         raise ValueError ("{g} is not in {col}".format(g=geo, col=self.geog_var)) 
+                df_shares = df[df[self.geog_var].isin(psa_dict[key])]
+            df_shares = self.data[[self.choice_var, weight_var]]
+            df_shares = (df.groupby(group).sum() / df[weight_var].sum()).reset_index()
+            
+            df_shares = df_shares.rename(columns = {weight_var: 'share'})
+            output_dict.update({key: df_shares})
+
+        return output_dict
+    
+    def calculate_hhi(self, shares_dict, share_col="share"):
+        """
+        Calculates HHIs from precalculated shares
+        
+        Parameters
+        ----------
+        shares_dict : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
+        """
+        if type(shares_dict) != dict:
+            raise TypeError ("Expected type dict. Got {}".format(type(shares_dict)))
+        
+        output_dict = {}
+        for key in shares_dict.keys():
+            df = shares_dict[key]
+            
+            if type(df) != pd.core.frame.DataFrame:
+                raise TypeError ('''Expected type pandas.core.frame.DataFrame Got {}'''.format(type(df)))
+            
+            if share_col not in df.columns:
+                raise KeyError("Column '{}' not in ChoiceData")
+            
+            df = df.groupby(self.corp_var).sum()
+            df[share_col] = df[share_col] * 100
+            hhi = (df[share_col] * df[share_col]).sum()
+            
+            output_dict.update({key: hhi})
+            
+        return output_dict

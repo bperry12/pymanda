@@ -141,7 +141,7 @@ def test_3Corp(cd_psa):
                    'z_0.9' : [3,7,10]}
     
     assert answer_dict==psa_dict
-    
+
 def test_1corp(cd_psa):
     '''Estimate the 1 Corporation in the psa data with default parameters'''
     psa_dict = cd_psa.estimate_psa(['x'])
@@ -187,3 +187,49 @@ def test_BadSeries(cd_psa, psa_data):
     with pytest.raises(TypeError):
         cd_psa.restrict_data(flag_series)
 
+# Tests for calculate shares
+def dictionary_comparison(dict1, dict2):
+    if len(dict1.keys()) == 0 or len(dict2.keys()) == 0:
+        raise ValueError("Comparisons have 0 Keys")
+    
+    matches = []
+    if dict1.keys == dict2.keys:
+        for key in dict1.keys:
+            matches.append(dict1[key].equals(dict2[key])) 
+    
+    return all(matches)
+
+def test_BaseShares(cd_psa):
+    test_shares = cd_psa.calculate_shares()
+    actual_shares = {'Base Shares': pd.DataFrame({'corporation':['x', 'x', 'y', 'y', 'z'],
+                                                   'choice': ['a', 'b', 'c', 'd', 'e'],
+                                                   'share': [.3, .2, .2, .05, .25]})}
+    
+    assert dictionary_comparison(test_shares, actual_shares)
+    
+def test_PsaShares(cd_psa):
+    psa_test = {'x_0.75': [1,2,3]}
+    test_shares = cd_psa.calculate_shares(psa_test)
+    
+    actual_shares = {'x_0.75': pd.DataFrame({'corporation': ['x', 'x', 'y', 'y', 'z'],
+                                            'choice': ['a', 'b', 'c', 'd', 'e'],
+                                            'share': [x / 46 for x in [30, 8, 1,3, 4]]})}
+    
+    assert dictionary_comparison(test_shares, actual_shares)
+
+#test for calculating HHI shares
+
+def test_HHIs(cd_psa):
+    share_tables = {'Base Shares': pd.DataFrame({'corporation':['x', 'x', 'y', 'y', 'z'],
+                                                 'choice': ['a', 'b', 'c', 'd', 'e'],
+                                                 'share': [.3, .2, .2, .05, .25]}),
+                    'x_0.75': pd.DataFrame({'corporation': ['x', 'x', 'y', 'y', 'z'],
+                                            'choice': ['a', 'b', 'c', 'd', 'e'],
+                                            'share': [x / 46 for x in [30, 8, 1,3, 4]]})
+                     }
+    test_hhis = cd_psa.calculate_hhi(share_tables)
+    
+    actual_hhis = {'Base Shares': 3750.0,
+                  'x_0.75': 2572108959116825 / 549755813888}
+    
+    assert test_hhis == actual_hhis

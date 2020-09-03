@@ -339,8 +339,8 @@ class ChoiceData():
         ----------
         shares_dict: dictionary of share tables
             
-        share_col : Column name in dataframe
-            column that holds float of shares.
+        share_col : Column name in dataframe, Optional
+            column that holds float of shares. Default is 'share'
 
         Returns
         -------
@@ -412,12 +412,29 @@ class ChoiceData():
             values will be hhi change.
         """
         
+        if type(trans_list) != list:
+            raise TypeError ('''trans_list expected list. got {}'''.format(type(trans_list)))
+        if len(trans_list) < 2:
+            raise ValueError ('''trans_list needs atleast 2 elements to compare HHI change''')
+            
+        if trans_var is None:
+            trans_var = self.corp_var
+
+        for elm in trans_list:
+            if not self.data[trans_var].isin([elm]).any():
+                raise ValueError ('''{element} is not an element in column {col}'''.format(element=elm, col=trans_var))
+        
         output_dict = {}
         for key in shares.keys():
+            df = shares[key]
+            self.shares_checks(df, share_col, data=key)
             
-            pre_hhi = self.calculate_hhi({"x" : shares[key]}, share_col)['x']
+            if trans_var not in df.columns:
+                raise KeyError ('''{var} is not column name in {data}'''.format(var=trans_var, data=key))    
             
-            post_df = shares[key]
+            pre_hhi = self.calculate_hhi({"x" : df}, share_col)['x']
+            
+            post_df = df
             post_df[self.corp_var] = post_df[self.corp_var].where(~post_df[self.corp_var].isin(trans_list), 'combined')
             post_hhi = self.calculate_hhi({"x": post_df}, share_col)['x']
             

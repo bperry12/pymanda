@@ -168,6 +168,8 @@ class ChoiceData():
         return output_dict
         
     def restriction_checks(self, restriction):
+        """checks for custom restrictions"""
+        
         if type(restriction) != pd.core.series.Series:
             raise TypeError ("Expected type pandas.core.series.Series. Got {}".format(type(restriction)))
         
@@ -227,15 +229,51 @@ class ChoiceData():
         
     def calculate_shares(self, psa_dict=None, weight_var=None, restriction=None):
         """
-        Create Share Table
+        Create Share Table of values in self.wght_var by self.choice_var
+        
+        Parameters
+        ----------
+        psa_dict: dictionary
+            dictionary of lists that contain values to be kept in self.geog_var
+            If None, calculates shares without restrictions
+            
+        weight_var : Column Name in self.data to use as weight
+            If None, treats every observation as 1
+        
+        restriction: optional restriction to be applied to data before calculating shares
 
         Returns
         -------
-        None.
+        Dictionary
+            keys are the same as psa_dict if given or "Base Shares"
+            values are corresponding pandas dataframes of the shares
+        
+        Examples
+        --------
+        >>> corps = ['x' for x in range(50)]
+        >>> corps += ['y' for x in range(25)]
+        >>> corps += ['z' for x in range(25)]
+        
+        >>> choices = ['a' for x in range(30)]
+        >>> choices += ['b' for x in range(20)]
+        >>> choices += ['c' for x in range(20)]
+        >>> choices += ['d' for x in range(5)]
+        >>> choices += ['e' for x in range(25)]
+        >>> df = pd.DataFrame({"corporation": corps,
+                          "choice" : choices})
+        >>> cd = ChoiceData(df, "choice", corp_var="corporation")
+        
+        >>> cd.calculate_shares()
+        {'Base Shares':   corporation choice  share
+         0           x      a   0.30
+         1           x      b   0.20
+         2           y      c   0.20
+         3           y      d   0.05
+         4           z      e   0.25}
 
         """
 
-        if type(psa_dict) != dict or type(psa_dict) is None:
+        if type(psa_dict) != dict and psa_dict is not None:
             raise TypeError ("Expected type dict. Got {}".format(type(psa_dict)))
             
         if restriction is not None:
@@ -252,11 +290,13 @@ class ChoiceData():
         
         if psa_dict is None:
             psa_dict= {'Base Shares': []}
+            base_shares = True
         else:
             if self.geog_var is None:
                 raise ValueError ("geog_var is not defined in ChoiceData")
             elif self.geog_var not in self.data.columns:
                 raise KeyError("geog_var is not in ChoiceData")
+            base_shares = False
             
         if self.corp_var == self.choice_var:
             group = self.choice_var
@@ -268,7 +308,7 @@ class ChoiceData():
             df = self.data
             if restriction is not None:
                 df = df[restriction]
-            if psa_dict is not None:
+            if not base_shares:
                 for geo in psa_dict[key]:
                      if not df[self.geog_var].isin([geo]).any():
                          raise ValueError ("{g} is not in {col}".format(g=geo, col=self.geog_var)) 
@@ -281,18 +321,51 @@ class ChoiceData():
 
         return output_dict
     
+    def shares_checks(df, share_col, key="Data"):
+        """ Checks for share columns"""
+        
+        if share_col not in df.columns:
+            raise KeyError("Column '{}' not in ChoiceData")
+        if (df[share_col] < 0).any():
+            raise ValueError ("Values of '{col}' in {d} contain negative values".format(col=share_col, d=key))
+        if df[share_col].sum() != 1:
+            raise ValueError ("Values of '{col}' in {d} do not sum to 1".format(col=share_col, d=key))
+    
     def calculate_hhi(self, shares_dict, share_col="share"):
         """
-        Calculates HHIs from precalculated shares
+        Calculates HHIs from precalculated shares at the corporation level
         
         Parameters
         ----------
-        shares_dict : TYPE
-            DESCRIPTION.
+        shares_dict: dictionary of share tables
+            
+        share_col : Column name in dataframe
+            column that holds float of shares.
 
         Returns
         -------
-        None.
+        Dictionary
+            keys are the same as shares_dict
+            values are hhis
+        
+        Examples
+        --------
+        >>> corps = ['x' for x in range(50)]
+        >>> corps += ['y' for x in range(25)]
+        >>> corps += ['z' for x in range(25)]
+        
+        >>> choices = ['a' for x in range(30)]
+        >>> choices += ['b' for x in range(20)]
+        >>> choices += ['c' for x in range(20)]
+        >>> choices += ['d' for x in range(5)]
+        >>> choices += ['e' for x in range(25)]
+        >>> df = pd.DataFrame({"corporation": corps,
+                          "choice" : choices})
+        >>> cd = ChoiceData(df, "choice", corp_var="corporation")
+        
+        >>> shares = cd.calculate_shares()
+        >>> cd.calculate_hhi(shares)
+        {'Base Shares': 3750.0}
 
         """
         if type(shares_dict) != dict:
@@ -305,8 +378,7 @@ class ChoiceData():
             if type(df) != pd.core.frame.DataFrame:
                 raise TypeError ('''Expected type pandas.core.frame.DataFrame Got {}'''.format(type(df)))
             
-            if share_col not in df.columns:
-                raise KeyError("Column '{}' not in ChoiceData")
+            self.shares_checks(df, share_col, key=key)
             
             df = df.groupby(self.corp_var).sum()
             df[share_col] = df[share_col] * 100
@@ -315,3 +387,28 @@ class ChoiceData():
             output_dict.update({key: hhi})
             
         return output_dict
+    
+    def hhi_change(self, trans_list, shares, trans_var=None, share_col="share"):
+        """
+        calculates change in hhis
+
+        Parameters
+        ----------
+        trans_list : list of objects in trans_var
+            list of entities that will be combined for calculating combined hhi.
+        shares : dictionary of dataframes
+            dictionary of objects with dataframes of shares.
+        trans_var : column in dataframe, optional
+            Column name containging objects in trans_list. The default is None 
+            which results in looking at self.corp_var.
+        share_col : column in dataframe, optional
+            Column name containing values of share. The default is None which 
+            looks for column labeled "share".
+
+        Returns
+        -------
+        dictionary
+            key will match shares
+            values will be hhi change.
+        """
+        

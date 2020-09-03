@@ -230,6 +230,6 @@ def test_HHIs(cd_psa):
     test_hhis = cd_psa.calculate_hhi(share_tables)
     
     actual_hhis = {'Base Shares': 3750.0,
-                  'x_0.75': 2572108959116825 / 549755813888}
+                  'x_0.75': 7669561259911983 / 1099511627776} # approximately 6975.43
     
     assert test_hhis == actual_hhis

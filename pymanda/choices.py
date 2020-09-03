@@ -321,15 +321,15 @@ class ChoiceData():
 
         return output_dict
     
-    def shares_checks(df, share_col, key="Data"):
+    def shares_checks(self, df, share_col, data="Data"):
         """ Checks for share columns"""
         
         if share_col not in df.columns:
             raise KeyError("Column '{}' not in ChoiceData")
         if (df[share_col] < 0).any():
-            raise ValueError ("Values of '{col}' in {d} contain negative values".format(col=share_col, d=key))
+            raise ValueError ("Values of '{col}' in {d} contain negative values".format(col=share_col, d=data))
         if df[share_col].sum() != 1:
-            raise ValueError ("Values of '{col}' in {d} do not sum to 1".format(col=share_col, d=key))
+            raise ValueError ("Values of '{col}' in {d} do not sum to 1".format(col=share_col, d=data))
     
     def calculate_hhi(self, shares_dict, share_col="share"):
         """
@@ -378,7 +378,7 @@ class ChoiceData():
             if type(df) != pd.core.frame.DataFrame:
                 raise TypeError ('''Expected type pandas.core.frame.DataFrame Got {}'''.format(type(df)))
             
-            self.shares_checks(df, share_col, key=key)
+            self.shares_checks(df, share_col, data=key)
             
             df = df.groupby(self.corp_var).sum()
             df[share_col] = df[share_col] * 100
@@ -408,7 +408,20 @@ class ChoiceData():
         Returns
         -------
         dictionary
-            key will match shares
+            key will match shares parameter
             values will be hhi change.
         """
         
+        output_dict = {}
+        for key in shares.keys():
+            
+            pre_hhi = self.calculate_hhi({"x" : shares[key]}, share_col)['x']
+            
+            post_df = shares[key]
+            post_df[self.corp_var] = post_df[self.corp_var].where(~post_df[self.corp_var].isin(trans_list), 'combined')
+            post_hhi = self.calculate_hhi({"x": post_df}, share_col)['x']
+            
+            hhi_change = post_hhi - pre_hhi
+            output_dict.update({key : hhi_change})
+            
+        return output_dict

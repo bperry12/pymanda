@@ -218,18 +218,39 @@ def test_PsaShares(cd_psa):
     assert dictionary_comparison(test_shares, actual_shares)
 
 #test for calculating HHI shares
+@pytest.fixture
+def base_shares():
+    base_shares = pd.DataFrame({'corporation':['x', 'x', 'y', 'y', 'z'],
+                                'choice': ['a', 'b', 'c', 'd', 'e'],
+                                'share': [.3, .2, .2, .05, .25]})
+    return base_shares
 
-def test_HHIs(cd_psa):
-    share_tables = {'Base Shares': pd.DataFrame({'corporation':['x', 'x', 'y', 'y', 'z'],
-                                                 'choice': ['a', 'b', 'c', 'd', 'e'],
-                                                 'share': [.3, .2, .2, .05, .25]}),
-                    'x_0.75': pd.DataFrame({'corporation': ['x', 'x', 'y', 'y', 'z'],
-                                            'choice': ['a', 'b', 'c', 'd', 'e'],
-                                            'share': [x / 46 for x in [30, 8, 1,3, 4]]})
-                     }
+@pytest.fixture
+def psa_shares():
+    psa_shares = pd.DataFrame({'corporation': ['x', 'x', 'y', 'y', 'z'],
+                                'choice': ['a', 'b', 'c', 'd', 'e'],
+                                'share': [x / 46 for x in [30, 8, 1,3, 4]]})
+    return psa_shares
+
+def test_HHIs(cd_psa, base_shares, psa_shares):
+    share_tables = {'Base Shares': base_shares,
+                    'x_0.75': psa_shares}
+    
     test_hhis = cd_psa.calculate_hhi(share_tables)
     
     actual_hhis = {'Base Shares': 3750.0,
                   'x_0.75': 7669561259911983 / 1099511627776} # approximately 6975.43
     
     assert test_hhis == actual_hhis
+    
+# test for calculating changes in HHI
+def test_HHIChange(cd_psa, base_shares, psa_shares):
+    share_dict = {'Base Shares': base_shares,
+                  'x_0.75': psa_shares}
+    test_change = cd_psa.hhi_change(['y', 'z'], share_dict)
+    
+    actual_change = {'Base Shares': 1250,
+                     'x_0.75' : 166277750892401 / 1099511627776} # approximately 151.23
+    
+    assert test_change == actual_change
+    

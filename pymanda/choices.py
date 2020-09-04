@@ -450,3 +450,79 @@ class ChoiceData():
             
         return output_dict
       
+
+class DiscreteChoice():
+    """
+    
+    DiscreteChoice
+    ---------
+    A Solver for calculating diversion in ChoiceData
+     
+    Parameters
+    ----------
+    data : Non-Empty pandas.core.frame.DataFrame object
+   
+    choice_var : String of Column Name
+        Column name that identifies the "choice" of each customer  
+    corp_var : String of Column Name, default None
+        Column Name that identifies a higher level classification of Choice    
+    geog_var : String of Column Name, default None
+        Column name that identifies a geography for Customer
+    wght_var : String of Column Name, default None
+        Column name that identifies weight for customer level
+   
+    Examples
+    --------
+    Constructing ChoiceData from a DataFrame.
+
+    """
+    def __init__(
+        self,
+        cd,
+        solver='semiperametric', 
+        copy_x=True,
+        coef_order= None,
+        verbose= False,
+        min_bin= 25):
+        
+        self.params = {'cd' : cd,
+                       'solver' : solver,
+                       'copy_x' : True,
+                       'coef_order' : coef_order,
+                       'verbose': verbose,
+                       'min_bin': min_bin}
+        
+        self.cd = cd
+        self.solver = solver
+        self.copy_x = copy_x
+        self.coef_order = coef_order
+        self.verbose = verbose
+        self.min_bin = min_bin
+        
+        if type(cd) !=  ChoiceData:
+            raise TypeError ('''Expected type pymanda.choices.ChoiceData Got {}'''.format(type(cd)))
+    
+        current_solvers = ['semiparametric']
+        if solver not in current_solvers:
+            raise ValueError ('''{a} is not supported solver. Solvers currently supported are {b}'''.format(a=solver, b=current_solvers))
+        
+        if type(copy_x) is not bool:
+            raise ValueError ('''{} is not bool type.'''.format(copy_x))
+        
+        if type(coef_order) != list:
+            raise ValueError ('''coef_order expected to be list. got {}'''.format(type(coef_order)))
+        if len(coef_order) ==0:
+            raise ValueError ('''coef_order must be a non-empty list''')
+        for coef in coef_order:
+            if coef not in cd.data.columns:
+                raise KeyError ('''{} is not a column in ChoiceData''')
+        
+        if type(verbose) is not bool:
+            raise ValueError ('''{} is not bool type.'''.format(verbose))
+        
+        if type(min_bin) not float and type(min_bin) not int:
+            raise ValueError('''min_bin must be a numeric value greater than 0''')
+        if min_bin <= 0:
+            raise ValueError('''min_bin must be greater than 0''')
+        
+            

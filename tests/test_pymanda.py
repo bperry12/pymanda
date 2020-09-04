@@ -239,7 +239,7 @@ def psa_shares():
 
 @pytest.fixture
 def psa_hhi():
-    psa_hhi = 7669561259911983 / 1099511627776
+    psa_hhi = 7669561259911983 / 1099511627776 # approximately 6975.43
     return psa_hhi
 
 def test_HHIs(cd_psa, base_shares, psa_shares, base_hhi, psa_hhi):
@@ -249,7 +249,7 @@ def test_HHIs(cd_psa, base_shares, psa_shares, base_hhi, psa_hhi):
     test_hhis = cd_psa.calculate_hhi(share_tables)
     
     actual_hhis = {'Base Shares': base_hhi,
-                  'x_0.75': psa_hhi} # approximately 6975.43
+                  'x_0.75': psa_hhi} 
     
     assert test_hhis == actual_hhis
     
@@ -291,6 +291,40 @@ def test_HHIChange(cd_psa, base_shares, psa_shares, base_hhi, psa_hhi):
                      'x_0.75' : 166277750892401 / 1099511627776} # approximately 151.23
     
     assert test_change == actual_change
-    
 
+def test_HHIChange_TransCol(cd_psa, base_shares):
+    share_dict = {"Base Shares": base_shares}
+    
+    test_change = cd_psa.hhi_change(['d', 'e'], share_dict, trans_var="choice")
+    
+    actual_change = {'Base Shares': 250}
+    
+    assert test_change==actual_change
+    
+def test_HHIChange_MultipleTrans(cd_psa, base_shares):
+    share_dict = {"Base Shares": base_shares}
+    
+    test_change = cd_psa.hhi_change(['c', 'd', 'e'], share_dict, trans_var="choice")
+    
+    actual_change = {'Base Shares': 1450}
+    
+    assert test_change==actual_change
+
+def test_HHIChange_BadList(cd_psa, base_shares):
+    share_dict = {"Base Shares": base_shares}
+    
+    with pytest.raises(KeyError):
+        cd_psa.hhi_change(['c', 'd', 'e'], share_dict)
+
+def test_HHIChange_NotList(cd_psa, base_shares):
+    share_dict = {"Base Shares": base_shares}
+
+    with pytest.raises(TypeError):
+        cd_psa.hhi_change('x', share_dict)
+    
+def test_HHIChange_BadTransCol(cd_psa, base_shares):
+    share_dict = {"Base Shares": base_shares}
+
+    with pytest.raises(KeyError):
+        cd_psa.hhi_change(['c', 'd'], share_dict, trans_col='systen')
     

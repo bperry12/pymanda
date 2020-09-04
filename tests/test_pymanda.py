@@ -226,25 +226,63 @@ def base_shares():
     return base_shares
 
 @pytest.fixture
+def base_hhi():
+    base_hhi = 3750.0
+    return base_hhi
+    
+@pytest.fixture
 def psa_shares():
     psa_shares = pd.DataFrame({'corporation': ['x', 'x', 'y', 'y', 'z'],
                                 'choice': ['a', 'b', 'c', 'd', 'e'],
                                 'share': [x / 46 for x in [30, 8, 1,3, 4]]})
     return psa_shares
 
-def test_HHIs(cd_psa, base_shares, psa_shares):
+@pytest.fixture
+def psa_hhi():
+    psa_hhi = 7669561259911983 / 1099511627776
+    return psa_hhi
+
+def test_HHIs(cd_psa, base_shares, psa_shares, base_hhi, psa_hhi):
     share_tables = {'Base Shares': base_shares,
                     'x_0.75': psa_shares}
     
     test_hhis = cd_psa.calculate_hhi(share_tables)
     
-    actual_hhis = {'Base Shares': 3750.0,
-                  'x_0.75': 7669561259911983 / 1099511627776} # approximately 6975.43
+    actual_hhis = {'Base Shares': base_hhi,
+                  'x_0.75': psa_hhi} # approximately 6975.43
     
     assert test_hhis == actual_hhis
     
+def test_HHI_sharecol(cd_psa, base_shares, psa_shares, base_hhi):
+    df_alt = base_shares
+    df_alt['other shares'] = df_alt['share']
+    df_alt = df_alt.drop(columns="share")
+    
+    share_tables = {'Base Shares': df_alt}
+    
+    test_hhis = cd_psa.calculate_hhi(share_tables, share_col="other shares")
+    
+    actual_hhis = {'Base Shares': base_hhi}
+    
+    assert test_hhis == actual_hhis
+    
+def test_HHI_BadSharecol(cd_psa, base_shares, psa_shares):
+    df_alt = psa_shares
+    df_alt['other shares'] = df_alt['share']
+    df_alt = df_alt.drop(columns="share")
+    
+    share_tables = {'Base Shares': base_shares,
+                'x_0.75': df_alt}
+    
+    with pytest.raises(KeyError):
+        cd_psa.calculate_hhi(share_tables)
+
+def test_HHI_BadInput(cd_psa):
+    with pytest.raises(TypeError):
+        cd_psa.calculate_hhi(cd_psa.data)
+
 # test for calculating changes in HHI
-def test_HHIChange(cd_psa, base_shares, psa_shares):
+def test_HHIChange(cd_psa, base_shares, psa_shares, base_hhi, psa_hhi):
     share_dict = {'Base Shares': base_shares,
                   'x_0.75': psa_shares}
     test_change = cd_psa.hhi_change(['y', 'z'], share_dict)
@@ -253,4 +291,6 @@ def test_HHIChange(cd_psa, base_shares, psa_shares):
                      'x_0.75' : 166277750892401 / 1099511627776} # approximately 151.23
     
     assert test_change == actual_change
+    
+
     

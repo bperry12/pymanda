@@ -327,4 +327,3 @@ def test_HHIChange_BadTransCol(cd_psa, base_shares):
 
     with pytest.raises(KeyError):
         cd_psa.hhi_change(['c', 'd'], share_dict, trans_var='systen')
-    

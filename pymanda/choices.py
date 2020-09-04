@@ -175,8 +175,7 @@ class ChoiceData():
         
         if restriction.dtype != np.dtype('bool'):
             raise TypeError ("Expected dtype('bool'). Got {}".format(restriction.dtype))
-        
-        
+            
     def restrict_data(self, restriction):
         """
         Restrict the data is self.data using an inline series
@@ -223,6 +222,7 @@ class ChoiceData():
         7      a          4
         
         """
+
         self.restriction_checks(restriction)
         
         self.data = self.data[restriction]
@@ -449,3 +449,4 @@ class ChoiceData():
             output_dict.update({key : hhi_change})
             
         return output_dict
+      

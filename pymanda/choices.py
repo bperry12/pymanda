@@ -235,7 +235,7 @@ class ChoiceData():
         ----------
         psa_dict: dictionary
             dictionary of lists that contain values to be kept in self.geog_var
-            If None, calculates shares without restrictions
+            If None, calculates shares for full data.
             
         weight_var : Column Name in self.data to use as weight
             If None, treats every observation as 1
@@ -388,8 +388,7 @@ class ChoiceData():
             self.shares_checks(df, share_col, data=key)
             
             df = df.groupby(group_col).sum()
-            df[share_col] = df[share_col] * 100
-            hhi = (df[share_col] * df[share_col]).sum()
+            hhi = (df[share_col] * df[share_col]).sum()*10000
             
             output_dict.update({key: hhi})
             
@@ -403,11 +402,11 @@ class ChoiceData():
         ----------
         trans_list : list of objects in trans_var
             list of entities that will be combined for calculating combined hhi.
-        shares : dictionary of dataframes
+        shares : dict of pandas.DataFrames
             dictionary of objects with dataframes of shares.
         trans_var : column in dataframe, optional
-            Column name containging objects in trans_list. The default is None 
-            which results in looking at self.corp_var.
+            Column name containging objects in trans_list. The default (None) 
+            uses self.corp_var.
         share_col : column in dataframe, optional
             Column name containing values of share. The default is None which 
             looks for column labeled "share".

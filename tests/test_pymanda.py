@@ -227,7 +227,7 @@ def base_shares():
 
 @pytest.fixture
 def base_hhi():
-    base_hhi = 3750.0
+    base_hhi = [3750.0] 
     return base_hhi
     
 @pytest.fixture
@@ -239,7 +239,7 @@ def psa_shares():
 
 @pytest.fixture
 def psa_hhi():
-    psa_hhi = 7669561259911983 / 1099511627776 # approximately 6975.43
+    psa_hhi = 479347578744499 / 68719476736 # approximately 6975.43
     return psa_hhi
 
 def test_HHIs(cd_psa, base_shares, psa_shares, base_hhi, psa_hhi):
@@ -287,8 +287,8 @@ def test_HHIChange(cd_psa, base_shares, psa_shares, base_hhi, psa_hhi):
                   'x_0.75': psa_shares}
     test_change = cd_psa.hhi_change(['y', 'z'], share_dict)
     
-    actual_change = {'Base Shares': 1250,
-                     'x_0.75' : 166277750892401 / 1099511627776} # approximately 151.23
+    actual_change = {'Base Shares': [base_hhi, 5000, 1250],
+                     'x_0.75' : [psa_hhi, 7835839010804385 / 1099511627776, 166277750892401 / 1099511627776]} # approximately 7126.66 post and 151.23 change
     
     assert test_change == actual_change
 
@@ -297,7 +297,7 @@ def test_HHIChange_TransCol(cd_psa, base_shares):
     
     test_change = cd_psa.hhi_change(['d', 'e'], share_dict, trans_var="choice")
     
-    actual_change = {'Base Shares': 250}
+    actual_change = {'Base Shares': [2350, 2600, 250]}
     
     assert test_change==actual_change
     
@@ -306,7 +306,7 @@ def test_HHIChange_MultipleTrans(cd_psa, base_shares):
     
     test_change = cd_psa.hhi_change(['c', 'd', 'e'], share_dict, trans_var="choice")
     
-    actual_change = {'Base Shares': 1450}
+    actual_change = {'Base Shares': [2350, 3800, 1450]}
     
     assert test_change==actual_change
 

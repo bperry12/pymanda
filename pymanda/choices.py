@@ -250,26 +250,22 @@ class ChoiceData():
         
         Examples
         --------
-        >>> corps = ['x' for x in range(50)]
-        >>> corps += ['y' for x in range(25)]
-        >>> corps += ['z' for x in range(25)]
-        
+    
         >>> choices = ['a' for x in range(30)]
         >>> choices += ['b' for x in range(20)]
         >>> choices += ['c' for x in range(20)]
         >>> choices += ['d' for x in range(5)]
         >>> choices += ['e' for x in range(25)]
-        >>> df = pd.DataFrame({"corporation": corps,
-                          "choice" : choices})
-        >>> cd = ChoiceData(df, "choice", corp_var="corporation")
+        >>> df = pd.DataFrame({choice" : choices})
+        >>> cd = ChoiceData(df, "choice")
         
         >>> cd.calculate_shares()
-        {'Base Shares':   corporation choice  share
-         0           x      a   0.30
-         1           x      b   0.20
-         2           y      c   0.20
-         3           y      d   0.05
-         4           z      e   0.25}
+        {'Base Shares':   choice  share
+         0      a   0.30
+         1      b   0.20
+         2      c   0.20
+         3      d   0.05
+         4      e   0.25}
 
         """
 
@@ -280,7 +276,6 @@ class ChoiceData():
             self.restriction_checks(restriction)
         
         if weight_var is None:
-            weight_var = self.wght_var
             self.data['count'] = 1
             self.wght_var = "count"
             weight_var = self.wght_var
@@ -308,11 +303,13 @@ class ChoiceData():
             df = self.data
             if restriction is not None:
                 df = df[restriction]
+                
             if not base_shares:
                 for geo in psa_dict[key]:
                      if not df[self.geog_var].isin([geo]).any():
                          raise ValueError ("{g} is not in {col}".format(g=geo, col=self.geog_var)) 
                 df_shares = df[df[self.geog_var].isin(psa_dict[key])]
+
             df_shares = self.data[[self.choice_var, weight_var]]
             df_shares = (df.groupby(group).sum() / df[weight_var].sum()).reset_index()
             
@@ -325,7 +322,7 @@ class ChoiceData():
         """ Checks for share columns"""
         
         if share_col not in df.columns:
-            raise KeyError("Column '{}' not in ChoiceData")
+            raise KeyError("Column '{}' not in ChoiceData".format(share_col))
         if (df[share_col] < 0).any():
             raise ValueError ("Values of '{col}' in {d} contain negative values".format(col=share_col, d=data))
         if df[share_col].sum() != 1:
@@ -415,7 +412,7 @@ class ChoiceData():
         -------
         dictionary
             key will match shares parameter
-            values will be hhi change.
+            values will be a list of [pre-merge HHI, post-merge HHI, HHI change].
         """
         
         if type(trans_list) != list:
@@ -445,7 +442,7 @@ class ChoiceData():
             post_hhi = self.calculate_hhi({"x": post_df}, share_col, group_col=trans_var)['x']
             
             hhi_change = post_hhi - pre_hhi
-            output_dict.update({key : hhi_change})
+            output_dict.update({key : [pre_hhi, post_hhi, hhi_change]})
             
         return output_dict
       

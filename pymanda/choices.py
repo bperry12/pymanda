@@ -331,7 +331,7 @@ class ChoiceData():
         if df[share_col].sum() != 1:
             raise ValueError ("Values of '{col}' in {d} do not sum to 1".format(col=share_col, d=data))
     
-    def calculate_hhi(self, shares_dict, share_col="share"):
+    def calculate_hhi(self, shares_dict, share_col="share", group_col=None):
         """
         Calculates HHIs from precalculated shares at the corporation level
         
@@ -341,6 +341,9 @@ class ChoiceData():
             
         share_col : Column name in dataframe, Optional
             column that holds float of shares. Default is 'share'
+        
+        group_col: Column name in dataframe, Optional
+            column of names to calculate HHI on. Default is self.corp_var
 
         Returns
         -------
@@ -371,6 +374,10 @@ class ChoiceData():
         if type(shares_dict) != dict:
             raise TypeError ("Expected type dict. Got {}".format(type(shares_dict)))
         
+        if group_col is None:
+            group_col = self.corp_var
+        elif group_col not in self.data.columns:
+            raise KeyError ('''"{}" is not a column in ChoiceData'''.format(group_col))
         output_dict = {}
         for key in shares_dict.keys():
             df = shares_dict[key]
@@ -380,7 +387,7 @@ class ChoiceData():
             
             self.shares_checks(df, share_col, data=key)
             
-            df = df.groupby(self.corp_var).sum()
+            df = df.groupby(group_col).sum()
             df[share_col] = df[share_col] * 100
             hhi = (df[share_col] * df[share_col]).sum()
             
@@ -432,11 +439,11 @@ class ChoiceData():
             if trans_var not in df.columns:
                 raise KeyError ('''{var} is not column name in {data}'''.format(var=trans_var, data=key))    
             
-            pre_hhi = self.calculate_hhi({"x" : df}, share_col)['x']
+            pre_hhi = self.calculate_hhi({"x" : df}, share_col, group_col=trans_var)['x']
             
             post_df = df
-            post_df[self.corp_var] = post_df[self.corp_var].where(~post_df[self.corp_var].isin(trans_list), 'combined')
-            post_hhi = self.calculate_hhi({"x": post_df}, share_col)['x']
+            post_df[trans_var] = post_df[trans_var].where(~post_df[trans_var].isin(trans_list), 'combined')
+            post_hhi = self.calculate_hhi({"x": post_df}, share_col, group_col=trans_var)['x']
             
             hhi_change = post_hhi - pre_hhi
             output_dict.update({key : hhi_change})

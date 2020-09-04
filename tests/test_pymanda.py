@@ -313,7 +313,7 @@ def test_HHIChange_MultipleTrans(cd_psa, base_shares):
 def test_HHIChange_BadList(cd_psa, base_shares):
     share_dict = {"Base Shares": base_shares}
     
-    with pytest.raises(KeyError):
+    with pytest.raises(ValueError):
         cd_psa.hhi_change(['c', 'd', 'e'], share_dict)
 
 def test_HHIChange_NotList(cd_psa, base_shares):
@@ -326,5 +326,5 @@ def test_HHIChange_BadTransCol(cd_psa, base_shares):
     share_dict = {"Base Shares": base_shares}
 
     with pytest.raises(KeyError):
-        cd_psa.hhi_change(['c', 'd'], share_dict, trans_col='systen')
+        cd_psa.hhi_change(['c', 'd'], share_dict, trans_var='systen')
     

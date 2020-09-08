@@ -552,13 +552,30 @@ class DiscreteChoice():
             lb_style = LabelBinarizer()
             y_wide = pd.DataFrame(lb_style.fit_transform(y), columns=lb_style.classes_, 
                                   index=y.index)
-            y_wide = pd.merge(y_wide,X['group'],left_index=True, right_index=True)
+            y_wide = pd.merge(y_wide,X[[choice,'group']],left_index=True, right_index=True)
             
             y_hat_groups = y_wide.groupby('group').agg('mean')
             
-            y_hat = pd.merge(y_wide['group'],y_hat_groups,how='left', on='group')
+            y_hat = pd.merge(y_wide[[choice, 'group']],y_hat_groups,how='left', on='group')
                     
         return y_hat
+        
+    def diversion(self, y_hat, choices=None):
+        if choices is None:
+            choices = list(y_hat['choice'].unique())
+        
+        div_shares = pd.DataFrame()
+        for choice in choices:
+            df = y_hat[y_hat.iloc[:,0]==choice].copy()
+            
+            df = df[choices].sum()
+            df = df.drop(columns=[choice])
+            df = df / df.sum()
+            print(df)
+            #make columns shares
+            
+            div_shares[choice] = df
+
         
         
     

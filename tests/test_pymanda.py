@@ -1,5 +1,5 @@
 import pytest
-from pymanda import ChoiceData
+from pymanda import ChoiceData, DiscreteChoice
 import pandas as pd
 import numpy as np
 
@@ -327,3 +327,24 @@ def test_HHIChange_BadTransCol(cd_psa, base_shares):
 
     with pytest.raises(KeyError):
         cd_psa.hhi_change(['c', 'd'], share_dict, trans_var='systen')
+
+# Tests for DiscreteChoice
+@pytest.fixture
+def semi_df(psa_data):
+    semi_df = pd.concat([psa_data for z in range(10)]).reset_index(drop=True)
+    np.random.seed(2)
+    semi_df['x1'] = np.random.randint(0,2,size=1000)
+    np.random.seed(2)
+    semi_df['x2'] = np.random.randint(0,3,size=1000)
+    np.random.seed(2)
+    semi_df['x3'] = np.random.randint(0,6,size=1000)
+    
+    semi_cd = ChoiceData(semi_df, 'choice', 'corporation', 'geography')
+
+    return semi_cd
+
+@pytest.fixture
+def semi_dc(semi_df):
+    semi_dc = DiscreteChoice(solver='semiparametric', coef_order = ['geography', 'x1', 'x2', 'x3'])
+    
+    return semi_dc

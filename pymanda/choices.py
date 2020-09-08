@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from sklearn.preprocessing import LabelBinarizer
 
 """
 ChoiceData
@@ -460,47 +461,32 @@ class DiscreteChoice():
      
     Parameters
     ----------
-    data : Non-Empty pandas.core.frame.DataFrame object
+    cd : object of class ChoiceData
    
-    choice_var : String of Column Name
-        Column name that identifies the "choice" of each customer  
-    corp_var : String of Column Name, default None
-        Column Name that identifies a higher level classification of Choice    
-    geog_var : String of Column Name, default None
-        Column name that identifies a geography for Customer
-    wght_var : String of Column Name, default None
-        Column name that identifies weight for customer level
    
     Examples
     --------
-    Constructing ChoiceData from a DataFrame.
 
     """
     def __init__(
         self,
-        cd,
         solver='semiperametric', 
         copy_x=True,
         coef_order= None,
         verbose= False,
         min_bin= 25):
         
-        self.params = {'cd' : cd,
-                       'solver' : solver,
+        self.params = {'solver' : solver,
                        'copy_x' : True,
                        'coef_order' : coef_order,
                        'verbose': verbose,
                        'min_bin': min_bin}
         
-        self.cd = cd
         self.solver = solver
         self.copy_x = copy_x
         self.coef_order = coef_order
         self.verbose = verbose
         self.min_bin = min_bin
-        
-        if type(cd) !=  ChoiceData:
-            raise TypeError ('''Expected type pymanda.choices.ChoiceData Got {}'''.format(type(cd)))
     
         current_solvers = ['semiparametric']
         if solver not in current_solvers:
@@ -513,16 +499,67 @@ class DiscreteChoice():
             raise ValueError ('''coef_order expected to be list. got {}'''.format(type(coef_order)))
         if len(coef_order) ==0:
             raise ValueError ('''coef_order must be a non-empty list''')
-        for coef in coef_order:
-            if coef not in cd.data.columns:
-                raise KeyError ('''{} is not a column in ChoiceData''')
         
         if type(verbose) is not bool:
             raise ValueError ('''{} is not bool type.'''.format(verbose))
         
-        if type(min_bin) not float and type(min_bin) not int:
+        if type(min_bin) != float and type(min_bin) != int:
             raise ValueError('''min_bin must be a numeric value greater than 0''')
         if min_bin <= 0:
-            raise ValueError('''min_bin must be greater than 0''')
+            raise ValueError('''min_bin must be greater than 0''') 
+    
+    def fit(self, cd, corp_var=False):
+        if type(cd) !=  ChoiceData:
+            raise TypeError ('''Expected type pymanda.choices.ChoiceData Got {}'''.format(type(cd)))
+            
+        for coef in self.coef_order:
+            if coef not in cd.data.columns:
+                raise KeyError ('''{} is not a column in ChoiceData''')
+                
+        if corp_var:
+            choice= cd.corp_var
+        else:
+            choice= cd.choice_var
         
+        if self.solver=='semiparamteric':
+            X = cd.data[self.coef_order + [choice]].copy()
+                    
+            ## group observations
+            X['grouped'] = False
+            X['group'] = ""
+            for i in range(3, len(self.coef_order)+3):
+                bin_by_cols = X.columns[0:-i].to_list()
+                if self.verbose:
+                    print(bin_by_cols)
+                
+                screen = X[~X['grouped']].groupby(bin_by_cols).agg({bin_by_cols[0]:['count']})
+                screen = (screen >= self.min_bin)
+                screen.columns = screen.columns.droplevel(0)
+                
+                X = pd.merge(X, screen, how='left', left_on=bin_by_cols,right_index=True)
+                X['count'] = X['count'].fillna(True)
+                # update grouped and group
+                X['group'] = np.where((~X['grouped']) & (X['count']),
+                                      X[bin_by_cols].astype(str).agg(' '.join,axis=1), X['group'])
+                X['grouped'] = X['grouped'] | X['count']
+                X = X.drop('count', axis=1) 
+                
+            # group ungroupables
+            X.loc[X['group']=="",'group'] = "ungrouped"
+            
+            ## estimate y_bar for each group
+            y = X['choice']
+            lb_style = LabelBinarizer()
+            y_wide = pd.DataFrame(lb_style.fit_transform(y), columns=lb_style.classes_, 
+                                  index=y.index)
+            y_wide = pd.merge(y_wide,X['group'],left_index=True, right_index=True)
+            
+            y_hat_groups = y_wide.groupby('group').agg('mean')
+            
+            y_hat = pd.merge(y_wide['group'],y_hat_groups,how='left', on='group')
+                    
+        return y_hat
+        
+        
+    
             

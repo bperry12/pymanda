@@ -561,22 +561,26 @@ class DiscreteChoice():
         return y_hat
         
     def diversion(self, y_hat, choices=None):
+        all_choices = list(y_hat['choice'].unique())
         if choices is None:
-            choices = list(y_hat['choice'].unique())
+            choices = all_choices
         
-        div_shares = pd.DataFrame()
+        div_shares = pd.DataFrame(index=all_choices)
         for choice in choices:
-            df = y_hat[y_hat.iloc[:,0]==choice].copy()
+            df = y_hat[y_hat.iloc[:,0]!=choice].copy()
             
-            df = df[choices].sum()
-            df = df.drop(columns=[choice])
+            all_choice_temp = all_choices.copy()
+            all_choice_temp.remove(choice)
+            
+            df = df[all_choice_temp]
+            df['rowsum'] = df.sum(axis=1)
+            for x in all_choice_temp:
+                df[x] = df[x] / df['rowsum']
+            df = df.drop(columns=['rowsum'])
+            df = df.sum()
             df = df / df.sum()
-            print(df)
-            #make columns shares
-            
-            div_shares[choice] = df
 
+            df.name = choice
+            div_shares = div_shares.merge(df, how='left', left_index=True, right_index=True)    
         
-        
-    
-            
+        return div_shares

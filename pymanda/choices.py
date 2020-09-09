@@ -463,9 +463,24 @@ class DiscreteChoice():
     ----------
     cd : object of class ChoiceData
    
+    solver: str of solver to use
    
+    copy_x: Bool whether to create copies of data in calculations
+        Default is True
+    
+    coef_order: list of columns in ChoiceData
+        coefficient order used for solver 'semiparametric'
+    
+    verbose: Boolean for Verbosity in solvers
+        Default is False
+    
+    min_bin: numeric
+        Minimum bin size used for solver 'semiparametric'
+    
     Examples
     --------
+    
+    DiscreteChoice(solver='semiparametric', coef_order = ['x1', 'x2', 'x3'])
 
     """
     def __init__(
@@ -509,6 +524,22 @@ class DiscreteChoice():
             raise ValueError('''min_bin must be greater than 0''') 
     
     def fit(self, cd, corp_var=False):
+        """
+        Fit Estimator using ChoiceData and specified solver
+
+        Parameters
+        ----------
+        cd : pymanda.ChoiceData Object
+            Contains data to be fitted using DiscreteChoice
+        corp_var : Boolean, optional
+            Whether to fit using cd.corp_var. The default is False which uses cd.choice_var.
+
+        Returns
+        -------
+        y_hat : pandas.core.frame.DataFrame
+            Returns ChoiceData observations with group and diversion probabilities.
+
+        """
         # if type(cd) !=  ChoiceData:
         #     raise TypeError ('''Expected type pymanda.choices.ChoiceData Got {}'''.format(type(cd)))
             
@@ -560,6 +591,24 @@ class DiscreteChoice():
         return y_hat
         
     def diversion(self, y_hat, choices=None):
+        '''
+        Calculate diversions given a DataFrame of observations with diversion probabilities
+
+        Parameters
+        ----------
+        y_hat : pandas.core.frame.DataFrame
+            DataFrame of observations with diversion probabilities.
+        choices : list, optional
+            list of choices to calculate diversions for. The default is None
+            which calculates all possible choice diversions.
+
+        Returns
+        -------
+        div_shares : pandas.core.frame.DataFrame
+            Columns are name of choice being diverted, 
+            rows are shares of diversion.
+
+        '''
         if type(choices) != list and choices is not None:
             raise TypeError('''choices is expected to be list. got {}'''.format(type(choices)))
         
@@ -575,7 +624,7 @@ class DiscreteChoice():
             choices = all_choices
         div_shares = pd.DataFrame(index=all_choices)
         for choice in choices:
-            df = y_hat[y_hat.iloc[:,0]!=choice].copy()
+            df = y_hat[y_hat.iloc[:,0]==choice].copy()
             
             all_choice_temp = all_choices.copy()
             all_choice_temp.remove(choice)

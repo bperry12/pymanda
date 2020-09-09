@@ -409,4 +409,10 @@ def test_DC_semiparam_fit(semi_dc, semi_cd, semi_div):
     
 def test_DC_semiparam_diversion(semi_dc, semi_cd, semi_div):
    test = semi_dc.diversion(semi_div)
-    
+   
+   actual  = pd.DataFrame({'a': [np.NaN, .4375, .5625],
+                           'b': [.5774, np.NaN, .4226],
+                           'c': [.6464, .3536, np.NaN]},
+                          index = list('abc'))
+   
+   assert test.round(decimals=4).equals(actual)

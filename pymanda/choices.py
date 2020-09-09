@@ -509,8 +509,8 @@ class DiscreteChoice():
             raise ValueError('''min_bin must be greater than 0''') 
     
     def fit(self, cd, corp_var=False):
-        if type(cd) !=  ChoiceData:
-            raise TypeError ('''Expected type pymanda.choices.ChoiceData Got {}'''.format(type(cd)))
+        # if type(cd) !=  ChoiceData:
+        #     raise TypeError ('''Expected type pymanda.choices.ChoiceData Got {}'''.format(type(cd)))
             
         for coef in self.coef_order:
             if coef not in cd.data.columns:
@@ -520,8 +520,7 @@ class DiscreteChoice():
             choice= cd.corp_var
         else:
             choice= cd.choice_var
-        
-        if self.solver=='semiparamteric':
+        if self.solver=='semiparametric':
             X = cd.data[self.coef_order + [choice]].copy()
                     
             ## group observations
@@ -561,10 +560,19 @@ class DiscreteChoice():
         return y_hat
         
     def diversion(self, y_hat, choices=None):
+        if type(choices) != list and choices is not None:
+            raise TypeError('''choices is expected to be list. got {}'''.format(type(choices)))
+        
+        if type(y_hat) != pd.core.frame.DataFrame:
+            raise TypeError ('''Expected Type pandas.core.frame.DataFrame. Got {}'''.format(type(y_hat)))
+        
         all_choices = list(y_hat['choice'].unique())
+        for c in all_choices:
+            if c not in y_hat.columns:
+                raise KeyError ('''{} is not a column in Data'''.format(c))
+        
         if choices is None:
             choices = all_choices
-        
         div_shares = pd.DataFrame(index=all_choices)
         for choice in choices:
             df = y_hat[y_hat.iloc[:,0]!=choice].copy()

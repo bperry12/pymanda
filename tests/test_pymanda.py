@@ -330,21 +330,83 @@ def test_HHIChange_BadTransCol(cd_psa, base_shares):
 
 # Tests for DiscreteChoice
 @pytest.fixture
-def semi_df(psa_data):
-    semi_df = pd.concat([psa_data for z in range(10)]).reset_index(drop=True)
-    np.random.seed(2)
-    semi_df['x1'] = np.random.randint(0,2,size=1000)
-    np.random.seed(2)
-    semi_df['x2'] = np.random.randint(0,3,size=1000)
-    np.random.seed(2)
-    semi_df['x3'] = np.random.randint(0,6,size=1000)
+def semi_cd():
+    choice = ['a' for x in range(500)]
+    choice += ['b' for z in range(250)]   
+    choice += ['c' for x in range(250)]
     
-    semi_cd = ChoiceData(semi_df, 'choice', 'corporation', 'geography')
+    #choice a
+    x1 = [1 for x in range(300)]
+    x1 += [0 for x in range(200)]
+    
+    x2 = [1 for x in range(200)]
+    x2 += [0 for x in range(280)]
+    x2 += [1 for x in range(20)]
+    
+    x3 = [1 for x in range(100)]
+    x3 += [0 for x in range(200)]
+    x3 += [2 for x in range(180)]
+    x3 += [0 for x in range(20)]
+
+    #choice b
+    x1 += [1 for x in range(100)]
+    x1 += [0 for x in range(150)]
+
+    
+    x2 += [0 for x in range(50)]
+    x2 += [1 for x in range(150)]
+    x2 += [0 for x in range(50)]
+    
+    x3 += [0 for x in range(50)]
+    x3 += [1 for x in range(100)]
+    x3 += [2 for x in range(100)]
+    
+    # choice c
+    x1 += [1 for x in range(100)]
+    x1 += [0 for x in range(150)]
+
+    x2 += [1 for x in range(150)]
+    x2 += [0 for x in range(100)]
+
+    x3 += [0 for x in range(50)]
+    x3 += [1 for x in range(100)]
+    x3 += [2 for x in range(100)]
+    
+    semi_df = pd.DataFrame({'choice': choice,
+                            'x1': x1,
+                            'x3': x3,
+                            'x2': x2})
+    semi_cd = ChoiceData(semi_df, 'choice')
 
     return semi_cd
 
 @pytest.fixture
-def semi_dc(semi_df):
-    semi_dc = DiscreteChoice(solver='semiparametric', coef_order = ['geography', 'x1', 'x2', 'x3'])
-    
+def semi_dc():
+    semi_dc = DiscreteChoice(solver='semiparametric', coef_order = ['x1', 'x2', 'x3'])
     return semi_dc
+
+@pytest.fixture
+def semi_div(semi_cd):
+    actual = semi_cd.data.copy()
+    actual['group'] = actual[['x1', 'x2', 'x3']].astype(str).agg(' '.join,axis=1)
+    actual = actual.drop(columns=['x1', 'x2','x3'])
+    
+    semi_div = pd.DataFrame({'group': ['0 0 2', '0 1 0','0 1 1', '0 1 2', '1 0 0', '1 1 0', '1 1 1'],
+                'a': [180/330, 1, 0, 0, 2/3, 2/3, .5],
+                'b': [50/330, 0, .5, 1, 1/3, 0, .25],
+                'c': [100/330, 0, .5, 0., 0, 1/3, .25]})
+    semi_div = actual.merge(semi_div, how='left', on='group')
+    semi_div['group'] = semi_div['group'].where(~(semi_div['group']=='0 1 0'), 'ungrouped')
+    
+    return semi_div
+    
+def test_DC_semiparam_fit(semi_dc, semi_cd, semi_div):
+    test = semi_dc.fit(semi_cd)
+    
+    actual = semi_div
+    
+    assert test.equals(actual)
+    
+def test_DC_semiparam_diversion(semi_dc, semi_cd, semi_div):
+   test = semi_dc.diversion(semi_div)
+    

@@ -457,8 +457,8 @@ class DiscreteChoice():
     
     DiscreteChoice
     ---------
-    A Solver for calculating diversion in ChoiceData
-     
+    A solver for estimating discrete choice models and post-estimation analysis.     
+
     Parameters
     ----------
     cd : object of class ChoiceData
@@ -489,7 +489,8 @@ class DiscreteChoice():
         copy_x=True,
         coef_order= None,
         verbose= False,
-        min_bin= 25):
+        min_bin= 25
+        corp_var = True):
         
         self.params = {'solver' : solver,
                        'copy_x' : True,
@@ -523,7 +524,7 @@ class DiscreteChoice():
         if min_bin <= 0:
             raise ValueError('''min_bin must be greater than 0''') 
     
-    def fit(self, cd, corp_var=False):
+    def fit(self, cd):
         """
         Fit Estimator using ChoiceData and specified solver
 
@@ -540,17 +541,19 @@ class DiscreteChoice():
             Returns ChoiceData observations with group and diversion probabilities.
 
         """
+        
         # if type(cd) !=  ChoiceData:
         #     raise TypeError ('''Expected type pymanda.choices.ChoiceData Got {}'''.format(type(cd)))
             
         for coef in self.coef_order:
             if coef not in cd.data.columns:
-                raise KeyError ('''{} is not a column in ChoiceData''')
+                raise KeyError ('''{} is not a column in ChoiceData'''.format(coef))
                 
-        if corp_var:
+        if self.corp_var:
             choice= cd.corp_var
         else:
             choice= cd.choice_var
+            
         if self.solver=='semiparametric':
             X = cd.data[self.coef_order + [choice]].copy()
                     
@@ -570,29 +573,53 @@ class DiscreteChoice():
                 X['count'] = X['count'].fillna(True)
                 # update grouped and group
                 X['group'] = np.where((~X['grouped']) & (X['count']),
-                                      X[bin_by_cols].astype(str).agg(' '.join,axis=1), X['group'])
+                                      X[bin_by_cols].astype(str).agg('\b'.join,axis=1), X['group'])
                 X['grouped'] = X['grouped'] | X['count']
                 X = X.drop('count', axis=1) 
                 
             # group ungroupables
             X.loc[X['group']=="",'group'] = "ungrouped"
             
-            ## estimate y_bar for each group
-            y = X['choice']
-            lb_style = LabelBinarizer()
-            y_wide = pd.DataFrame(lb_style.fit_transform(y), columns=lb_style.classes_, 
-                                  index=y.index)
-            y_wide = pd.merge(y_wide,X[[choice,'group']],left_index=True, right_index=True)
+            X = X[['choice', 'group', 'grouped']].pivot_table(index='group', columns='choice', aggfunc='count', fill_value=0)
             
-            y_hat_groups = y_wide.groupby('group').agg('mean')
+            X['rowsum'] = X.sum(axis=1)
+            for x in X.columns:
+                X[x] = X[x] / X['rowsum']
+            X = X.drop('rowsum', axis=1)
+            X.columns = [col[1] for col in X.columns]
+            X= X.reset_index()
             
-            y_hat = pd.merge(y_wide[[choice, 'group']],y_hat_groups,how='left', on='group')
-                    
-        return y_hat
-        
-    def diversion(self, y_hat, choices=None):
+            self.coef_ = X
+    
+    def predict(self, cd):
         '''
-        Calculate diversions given a DataFrame of observations with diversion probabilities
+        Merges based on groups
+        '''
+            
+        if self.solver == 'parametric':
+            
+            #group based on groups
+            X = cd.data[self.coef_order].copy()
+            X['group'] = ""
+            for n in range(len(self.coef_order)):
+                X['g'] = X[self.coef_order[:len(self.coef_order) - n]].astype(str).agg('\b'.join,axis=1)
+                X['group'] = np.where((X['g'].isin(self.coef_['group'])) & (X['group'] == ""),
+                                      X['g'],
+                                      X['group'])
+            
+            X.loc[X['group']=="",'group'] = "ungrouped"
+            X = X['group']
+            
+            y_hat = pd.merge(X, self.coef_, how='left', on='group')
+            y_hat = y_hat.drop(columns=['group'])            
+            
+        
+        return y_hat
+
+    def diversion(self, cd, y_hat, choices):
+        '''
+        Calculate diversions given a DataFrame of observations with diversion
+        probabilities
 
         Parameters
         ----------
@@ -609,22 +636,39 @@ class DiscreteChoice():
             rows are shares of diversion.
 
         '''
+        
         if type(choices) != list and choices is not None:
             raise TypeError('''choices is expected to be list. got {}'''.format(type(choices)))
         
         if type(y_hat) != pd.core.frame.DataFrame:
             raise TypeError ('''Expected Type pandas.core.frame.DataFrame. Got {}'''.format(type(y_hat)))
         
+        if self.corp_var:
+            choice = cd.corp_var
+        else:
+            choice = cd.choice_var
+        
+        if len(y_hat) != len(cd.data):
+            raise ValueError('''length of y_hat and cd.data should be the same''')
+            
+        y_hat['choice'] = cd.data[cd.choice_var]
+        
         all_choices = list(y_hat['choice'].unique())
         for c in all_choices:
             if c not in y_hat.columns:
-                raise KeyError ('''{} is not a column in Data'''.format(c))
+                raise KeyError ('''{} is not a column in ChoiceData'''.format(c))
         
-        if choices is None:
-            choices = all_choices
+        if type(choices) != list:
+            raise TypeError ('''choices expected list. Got {}'''.format(type(choices)))
+        
+        if len(choices) < 2:
+            raise ValueError ('''choices must have atleast a length of 2. The first
+                              item is the aquirer. The remaining items are the 
+                              acquisition target(s)''')
+            
         div_shares = pd.DataFrame(index=all_choices)
         for choice in choices:
-            df = y_hat[y_hat.iloc[:,0]==choice].copy()
+            df = y_hat[y_hat['choice']==choice].copy()
             
             all_choice_temp = all_choices.copy()
             all_choice_temp.remove(choice)

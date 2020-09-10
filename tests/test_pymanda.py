@@ -331,46 +331,56 @@ def test_HHIChange_BadTransCol(cd_psa, base_shares):
 # Tests for DiscreteChoice
 @pytest.fixture
 def semi_cd():
-    choice = ['a' for x in range(500)]
-    choice += ['b' for z in range(250)]   
-    choice += ['c' for x in range(250)]
+    choice = ['a' for x in range(560)]
+    choice += ['b' for z in range(220)]   
+    choice += ['c' for x in range(220)]
     
     #choice a
-    x1 = [1 for x in range(300)]
-    x1 += [0 for x in range(200)]
+    x1 = [0 for x in range(220)]
+    x1 += [1 for x in range(340)]
     
-    x2 = [1 for x in range(200)]
-    x2 += [0 for x in range(280)]
+    x2 = [0 for x in range(200)]
     x2 += [1 for x in range(20)]
+    x2 += [0 for x in range(120)]
+    x2 += [1 for x in range(220)]
     
-    x3 = [1 for x in range(100)]
-    x3 += [0 for x in range(200)]
-    x3 += [2 for x in range(180)]
-    x3 += [0 for x in range(20)]
 
-    #choice b
-    x1 += [1 for x in range(100)]
-    x1 += [0 for x in range(150)]
-
-    
-    x2 += [0 for x in range(50)]
-    x2 += [1 for x in range(150)]
-    x2 += [0 for x in range(50)]
-    
-    x3 += [0 for x in range(50)]
+    x3 = [2 for x in range(200)]
+    x3 += [0 for x in range(120)]
+    x3 += [2 for x in range(20)]
+    x3 += [0 for x in range(100)]
     x3 += [1 for x in range(100)]
-    x3 += [2 for x in range(100)]
+    x3 += [2 for x in range(20)]
+    
+    #choice b
+    x1 += [0 for x in range(140)]
+    x1 += [1 for x in range(80)]
+
+    
+    x2 += [0 for x in range(60)]
+    x2 += [1 for x in range(80)]
+    x2 += [0 for x in range(40)]
+    x2 += [1 for x in range(40)]
+    
+    x3 += [0 for x in range(20)]
+    x3 += [2 for x in range(40)]
+    x3 += [1 for x in range(40)]
+    x3 += [2 for x in range(40)]
+    x3 += [0 for x in range(40)]
+    x3 += [1 for x in range(40)]
     
     # choice c
-    x1 += [1 for x in range(100)]
-    x1 += [0 for x in range(150)]
+    x1 += [0 for x in range(140)]
+    x1 += [1 for x in range(80)]
 
-    x2 += [1 for x in range(150)]
-    x2 += [0 for x in range(100)]
+    x2 += [0 for x in range(120)]
+    x2 += [1 for x in range(100)]
 
-    x3 += [0 for x in range(50)]
-    x3 += [1 for x in range(100)]
+    x3 += [1 for x in range(20)]
     x3 += [2 for x in range(100)]
+    x3 += [1 for x in range(20)]
+    x3 += [0 for x in range(40)]
+    x3 += [1 for x in range(40)]
     
     semi_df = pd.DataFrame({'choice': choice,
                             'x1': x1,

@@ -397,32 +397,74 @@ def semi_dc():
 
 @pytest.fixture
 def semi_div(semi_cd):
-    actual = semi_cd.data.copy()
-    actual['group'] = actual[['x1', 'x2', 'x3']].astype(str).agg(' '.join,axis=1)
-    actual = actual.drop(columns=['x1', 'x2','x3'])
-    
-    semi_div = pd.DataFrame({'group': ['0 0 2', '0 1 0','0 1 1', '0 1 2', '1 0 0', '1 1 0', '1 1 1'],
-                'a': [180/330, 1, 0, 0, 2/3, 2/3, .5],
-                'b': [50/330, 0, .5, 1, 1/3, 0, .25],
-                'c': [100/330, 0, .5, 0., 0, 1/3, .25]})
-    semi_div = actual.merge(semi_div, how='left', on='group')
-    semi_div['group'] = semi_div['group'].where(~(semi_div['group']=='0 1 0'), 'ungrouped')
-    
+    semi_div = pd.DataFrame({'group': ['0\b0','0\b0\b2','0\b1\b1', '0\b1\b2', '1', '1\b0\b0', '1\b1\b0', '1\b1\b1', 'ungrouped'],
+                'a': [0, .5882, 0, 0, 1, .7143, .7143, .5556, 1],
+                'b': [.5, .1176, .6667, 1, 0, .2857, 0, .2222, 0],
+                'c': [.5, .2941, .3333, 0, 0, 0, .2857, .2222, 0]})
+
     return semi_div
     
 def test_DC_semiparam_fit(semi_dc, semi_cd, semi_div):
-    test = semi_dc.fit(semi_cd)
+    semi_dc.fit(semi_cd)
+    test = semi_dc.coef_.round(decimals=4)
     
-    actual = semi_div
+    assert test.equals(semi_div)
+
+def test_DC_semiparam_fit_minbin(semi_cd):
+    dc = DiscreteChoice(solver='semiparametric', coef_order = ['x1', 'x2', 'x3'], min_bin=50)
+    dc.fit(semi_cd)
+    
+    test = dc.coef_.round(decimals=4)
+    
+    actual = pd.DataFrame({'group': ['0\b0\b2','0\b1','0\b1\b1', '1\b0\b0', '1\b1\b0', '1\b1\b1', 'ungrouped'],
+                'a': [.5882, .3333, 0, .7143, .7143, .5556, .5],
+                'b': [.1176, .6667, .6667, .2857, 0, .2222, .25],
+                'c': [.2941, 0, .3333, 0, .2857, .2222, .25]}) 
     
     assert test.equals(actual)
     
-def test_DC_semiparam_diversion(semi_dc, semi_cd, semi_div):
-   test = semi_dc.diversion(semi_div)
-   
-   actual  = pd.DataFrame({'a': [np.NaN, .4375, .5625],
-                           'b': [.5774, np.NaN, .4226],
-                           'c': [.6464, .3536, np.NaN]},
-                          index = list('abc'))
-   
-   assert test.round(decimals=4).equals(actual)
+    
+def test_DC_semiparam_predict(semi_dc, semi_cd, semi_div):
+    
+    semi_dc.fit(semi_cd)
+    test = semi_dc.predict(semi_cd)
+
+    actual = semi_cd.data.copy()
+    actual['group'] = actual[['x1', 'x2', 'x3']].astype(str).agg('\b'.join,axis=1)
+    actual = actual.drop(columns=['x1', 'x2','x3', 'choice'])
+    actual['group'] = actual['group'].str.replace('0\b1\b0', 'ungrouped')
+    actual['group'] = actual['group'].str.replace('0\b0\b0', '0\b0')
+    actual['group'] = actual['group'].str.replace('0\b0\b1', '0\b0')
+    actual['group'] = actual['group'].str.replace('1\b0\b2', '1')
+    actual['group'] = actual['group'].str.replace('1\b1\b2', '1')
+
+    actual = actual.merge(semi_div, how='left', on='group')
+    actual = actual.drop(columns=['group'])
+    
+    assert test.round(decimals=4).equals(actual)
+    
+    
+def test_DC_semiparm_diversion(semi_dc, semi_cd):
+    
+    semi_dc.fit(semi_cd)
+    y_hat = semi_dc.predict(semi_cd)  
+    test = semi_dc.diversion(semi_cd, y_hat, choices=['a', 'b', 'c'])
+    
+    actual = pd.DataFrame({'a': [np.NaN, .4143, .5857],
+                           'b': [.5291, np.NaN, .4709],
+                           'c': [.6905, .3095, np.NaN]},
+                          index = ['a', 'b', 'c'])
+    
+    assert test.round(decimals=4).equals(actual)
+
+def test_DC_semiparm_diversion_2choice(semi_dc, semi_cd):
+    
+    semi_dc.fit(semi_cd)
+    y_hat = semi_dc.predict(semi_cd)  
+    test = semi_dc.diversion(semi_cd, y_hat, choices=['a', 'b'])
+    
+    actual = pd.DataFrame({'a': [np.NaN, .4143, .5857],
+                           'b': [.5291, np.NaN, .4709]},
+                          index = ['a', 'b', 'c'])
+    
+    assert test.round(decimals=4).equals(actual)

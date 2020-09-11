@@ -1,3 +1,4 @@
+import pymanda
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import LabelBinarizer
@@ -489,7 +490,7 @@ class DiscreteChoice():
         copy_x=True,
         coef_order= None,
         verbose= False,
-        min_bin= 25
+        min_bin= 25,
         corp_var = True):
         
         self.params = {'solver' : solver,
@@ -503,7 +504,8 @@ class DiscreteChoice():
         self.coef_order = coef_order
         self.verbose = verbose
         self.min_bin = min_bin
-    
+        self.corp_var = corp_var
+        
         current_solvers = ['semiparametric']
         if solver not in current_solvers:
             raise ValueError ('''{a} is not supported solver. Solvers currently supported are {b}'''.format(a=solver, b=current_solvers))
@@ -542,8 +544,8 @@ class DiscreteChoice():
 
         """
         
-        # if type(cd) !=  ChoiceData:
-        #     raise TypeError ('''Expected type pymanda.choices.ChoiceData Got {}'''.format(type(cd)))
+        if type(cd) !=  pymanda.ChoiceData:
+            raise TypeError ('''Expected type pymanda.choices.ChoiceData Got {}'''.format(type(cd)))
             
         for coef in self.coef_order:
             if coef not in cd.data.columns:
@@ -592,11 +594,26 @@ class DiscreteChoice():
             self.coef_ = X
     
     def predict(self, cd):
-        '''
-        Merges based on groups
-        '''
+        """
+        Use Estimated model to predict individual choice
+
+        Parameters
+        ----------
+        cd : ChoiceData
+            ChoiceData to be predicted on.
+
+        Returns
+        -------
+        y_hat : pandas.core.frame.DataFrame
+            Dataframe of predictions for each choice.
+            When solver ='semiparametric', each row contains probabilities of 
+            going to any of the choices.
+
+        """
+        if type(cd) !=  pymanda.ChoiceData:
+            raise TypeError ('''Expected type pymanda.choices.ChoiceData Got {}'''.format(type(cd)))
             
-        if self.solver == 'parametric':
+        if self.solver == 'semiparametric':
             
             #group based on groups
             X = cd.data[self.coef_order].copy()
@@ -623,11 +640,14 @@ class DiscreteChoice():
 
         Parameters
         ----------
+        cd: pymanda.ChoiceData
+            ChoiceData to calculate diversions on.
+
         y_hat : pandas.core.frame.DataFrame
             DataFrame of observations with diversion probabilities.
-        choices : list, optional
-            list of choices to calculate diversions for. The default is None
-            which calculates all possible choice diversions.
+            
+        choices : list
+            list of choices to calculate diversions for.
 
         Returns
         -------
@@ -636,6 +656,8 @@ class DiscreteChoice():
             rows are shares of diversion.
 
         '''
+        if type(cd) !=  pymanda.ChoiceData:
+            raise TypeError ('''Expected type pymanda.choices.ChoiceData Got {}'''.format(type(cd)))
         
         if type(choices) != list and choices is not None:
             raise TypeError('''choices is expected to be list. got {}'''.format(type(choices)))
@@ -661,10 +683,8 @@ class DiscreteChoice():
         if type(choices) != list:
             raise TypeError ('''choices expected list. Got {}'''.format(type(choices)))
         
-        if len(choices) < 2:
-            raise ValueError ('''choices must have atleast a length of 2. The first
-                              item is the aquirer. The remaining items are the 
-                              acquisition target(s)''')
+        if len(choices) == 0:
+            raise ValueError ('''choices must have atleast a length of 1''')
             
         div_shares = pd.DataFrame(index=all_choices)
         for choice in choices:

@@ -1,4 +1,4 @@
-import pymanda
+# import pymanda
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import LabelBinarizer
@@ -544,8 +544,8 @@ class DiscreteChoice():
 
         """
         
-        if type(cd) !=  pymanda.ChoiceData:
-            raise TypeError ('''Expected type pymanda.choices.ChoiceData Got {}'''.format(type(cd)))
+        # if type(cd) !=  pymanda.ChoiceData:
+        #     raise TypeError ('''Expected type pymanda.choices.ChoiceData Got {}'''.format(type(cd)))
             
         for coef in self.coef_order:
             if coef not in cd.data.columns:
@@ -610,8 +610,8 @@ class DiscreteChoice():
             going to any of the choices.
 
         """
-        if type(cd) !=  pymanda.ChoiceData:
-            raise TypeError ('''Expected type pymanda.choices.ChoiceData Got {}'''.format(type(cd)))
+        # if type(cd) !=  pymanda.ChoiceData:
+        #     raise TypeError ('''Expected type pymanda.choices.ChoiceData Got {}'''.format(type(cd)))
             
         if self.solver == 'semiparametric':
             
@@ -656,8 +656,8 @@ class DiscreteChoice():
             rows are shares of diversion.
 
         '''
-        if type(cd) !=  pymanda.ChoiceData:
-            raise TypeError ('''Expected type pymanda.choices.ChoiceData Got {}'''.format(type(cd)))
+        # if type(cd) !=  pymanda.ChoiceData:
+        #     raise TypeError ('''Expected type pymanda.choices.ChoiceData Got {}'''.format(type(cd)))
         
         if type(choices) != list and choices is not None:
             raise TypeError('''choices is expected to be list. got {}'''.format(type(choices)))
@@ -705,3 +705,46 @@ class DiscreteChoice():
             div_shares = div_shares.merge(df, how='left', left_index=True, right_index=True)    
         
         return div_shares
+    
+    def wtp_change(self, y_hat, trans_list):
+        '''
+        Calculate the change in Willingness to Pay (WTP) for a combined entity
+        given a DataFrame of predictions
+
+        Parameters
+        ----------
+        trans_list: list
+            List of choices to calculate WTP change on
+
+        y_hat : pandas.core.frame.DataFrame
+            DataFrame of observations with diversion probabilities.
+
+        Returns
+        -------
+        wtp_df : pandas.core.frame.DataFrame
+            1 row dataframe with columns of showing individual WTP of elements 
+            in trans_list and wtp of a combined entity
+
+        '''
+        
+        if type(trans_list) != list:
+            raise TypeError ('''trans_list expected type list. got {}'''.format(type(trans_list)))
+        
+        if len(trans_list) < 2:
+            raise ValueError ('''trans_list needs atleast 2 choices''')
+        
+        for tran in trans_list:
+            if tran not in y_hat.columns:
+                raise KeyError ('''{} is not a choice in y_hat''')
+        
+        if self.solver == 'semiparametric':
+            wtp_df = y_hat[trans_list].copy()
+            wtp_df['combined'] = wtp_df.sum(axis=1)
+            
+            wtp_df = -1 * np.log(1- wtp_df) # -1 * ln(1-prob)
+            
+            wtp_df = wtp_df.sum().to_frame().transpose()
+            
+            wtp_df['wtp_change'] = (wtp_df['combined'] - wtp_df[trans_list].sum(axis = 1)) /  wtp_df[trans_list].sum(axis = 1)
+        
+        return wtp_df

@@ -2,6 +2,7 @@
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import LabelBinarizer
+import warnings
 
 """
 ChoiceData
@@ -740,6 +741,9 @@ class DiscreteChoice():
         if self.solver == 'semiparametric':
             wtp_df = y_hat[trans_list].copy()
             wtp_df['combined'] = wtp_df.sum(axis=1)
+            
+            if (wtp_df==1).any().any():
+                warnings.warn('''A diversion probability for a bin equals 1 which will result in infitie WTP.''' , RuntimeWarning)
             
             wtp_df = -1 * np.log(1- wtp_df) # -1 * ln(1-prob)
             

@@ -470,15 +470,17 @@ def test_DC_semiparm_diversion_2choice(semi_dc, semi_cd):
     assert test.round(decimals=4).equals(actual)
     
 # tests for wtp_change()
-def test_wtpchange(semi_dc, semi_cd):
+def test_wtpchange(semi_cd):
+    semi_dc = DiscreteChoice(solver='semiparametric', coef_order = ['x1', 'x2', 'x3'], min_bin=180)
+
     semi_dc.fit(semi_cd)
     y_hat = semi_dc.predict(semi_cd)  
     
     test = semi_dc.wtp_change(y_hat, ['a', 'b'])
     
-    actual = pd.DataFrame({'a': [],
-                          'b': [],
-                          'combined': [],
-                          'changed': []})
+    actual = pd.DataFrame({'a': [912.6297],
+                          'b': [287.4548],
+                          'combined': [1574.0460],
+                          'wtp_change': [.3116]})
     
-    assert test.equals(actual)
+    assert test.round(decimals=4).equals(actual)

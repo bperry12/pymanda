@@ -484,3 +484,31 @@ def test_wtpchange(semi_cd):
                           'wtp_change': [.3116]})
     
     assert test.round(decimals=4).equals(actual)
+    
+def test_wtpchange_warning(semi_cd, semi_dc):
+    semi_dc.fit(semi_cd)
+    y_hat = semi_dc.predict(semi_cd)  
+    
+    with pytest.warns(RuntimeWarning) as record:
+        semi_dc.wtp_change(y_hat, ['a', 'b'])
+    
+    assert len(record) == 1
+    
+def test_wtpchange_warning_results(semi_cd, semi_dc):
+    semi_dc.fit(semi_cd)
+    y_hat = semi_dc.predict(semi_cd)  
+    
+    with pytest.warns(RuntimeWarning):
+        test = semi_dc.wtp_change(y_hat, ['a', 'b'])
+    
+    actual = pd.DataFrame({'a': [np.inf],
+                          'b': [np.inf],
+                          'combined': [np.inf],
+                          'wtp_change': [np.NaN]})
+    assert test.equals(actual)
+        
+        
+        
+        
+        
+        

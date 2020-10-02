@@ -723,7 +723,7 @@ class DiscreteChoice():
         Returns
         -------
         wtp_df : pandas.core.frame.DataFrame
-            1 row dataframe with columns of showing individual WTP of elements 
+            1 row dataframe with columns showing individual WTP of elements 
             in trans_list and wtp of a combined entity
 
         '''
@@ -736,16 +736,17 @@ class DiscreteChoice():
         
         for tran in trans_list:
             if tran not in y_hat.columns:
-                raise KeyError ('''{} is not a choice in y_hat''')
+                raise KeyError ('''{} is not a choice in y_hat'''.format(tran))
         
         if self.solver == 'semiparametric':
             wtp_df = y_hat[trans_list].copy()
             wtp_df['combined'] = wtp_df.sum(axis=1)
             
             if (wtp_df==1).any().any():
-                warnings.warn('''A diversion probability for a bin equals 1 which will result in infitie WTP.''' , RuntimeWarning)
+                warnings.warn('''A diversion probability for a bin equals 1 which will result in infinite WTP.''' , RuntimeWarning)
             
-            wtp_df = -1 * np.log(1- wtp_df) # -1 * ln(1-prob)
+            with warnings.catch_warnings(record = True): # prevents redundant warning for np.log(0)
+                wtp_df = -1 * np.log(1- wtp_df) # -1 * ln(1-prob)
             
             wtp_df = wtp_df.sum().to_frame().transpose()
             

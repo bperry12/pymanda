@@ -391,6 +391,20 @@ def semi_cd():
     return semi_cd
 
 @pytest.fixture
+def semi_cd_system(semi_cd):
+    df= semi_cd.data.copy()
+    df['corp'] = df['choice']
+    choices = ['z' for x in range(300)] + ['y' for x in range(260)]
+    choices += ['x' for x in range(110)] + ['w' for x in range(110)]
+    choices += ['v' for x in range(110)] + ['u' for x in range(110)]
+    
+    df['choice'] = choices
+    
+    semi_cd_system = ChoiceData(df, 'choice', corp_var='corp')
+    
+    return semi_cd_system
+
+@pytest.fixture
 def semi_dc():
     semi_dc = DiscreteChoice(solver='semiparametric', coef_order = ['x1', 'x2', 'x3'])
     return semi_dc
@@ -447,8 +461,8 @@ def test_DC_semiparam_predict(semi_dc, semi_cd, semi_div):
 def test_DC_semiparm_diversion(semi_dc, semi_cd):
     
     semi_dc.fit(semi_cd)
-    y_hat = semi_dc.predict(semi_cd)  
-    test = semi_dc.diversion(semi_cd, y_hat, choices=['a', 'b', 'c'])
+    choice_probs = semi_dc.predict(semi_cd)  
+    test = semi_dc.diversion(semi_cd, choice_probs, div_choices=['a', 'b', 'c'])
     
     actual = pd.DataFrame({'a': [np.NaN, .4143, .5857],
                            'b': [.5291, np.NaN, .4709],
@@ -460,8 +474,8 @@ def test_DC_semiparm_diversion(semi_dc, semi_cd):
 def test_DC_semiparm_diversion_2choice(semi_dc, semi_cd):
     
     semi_dc.fit(semi_cd)
-    y_hat = semi_dc.predict(semi_cd)  
-    test = semi_dc.diversion(semi_cd, y_hat, choices=['a', 'b'])
+    choice_probs = semi_dc.predict(semi_cd)  
+    test = semi_dc.diversion(semi_cd, choice_probs, div_choices=['a', 'b'])
     
     actual = pd.DataFrame({'a': [np.NaN, .4143, .5857],
                            'b': [.5291, np.NaN, .4709]},

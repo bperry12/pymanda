@@ -98,9 +98,7 @@ class ChoiceData():
 
         """
         if self.corp_var == self.choice_var:
-            raise RuntimeError('''corp_map should only be called when 
-                               self.corp_var is defined and different than 
-                               self.choice_var''')
+            raise RuntimeError('''corp_map should only be called when self.corp_var is defined and different than self.choice_var''')
         corp_map = self.data.groupby([self.corp_var, self.choice_var]).count()
         corp_map = corp_map.reset_index()
         corp_map = corp_map[[self.corp_var, self.choice_var]]
@@ -709,9 +707,10 @@ class DiscreteChoice():
         if type(choice_probs) != pd.core.frame.DataFrame:
             raise TypeError ('''Expected Type pandas.core.frame.DataFrame. Got {}'''.format(type(choice_probs)))
         
-        if div_choices_var is None and cd.corp_var != cd.choice_var:
+        if div_choices_var is None:
             choice = cd.choice_var
-            corp_map = cd.corp_map()
+            if cd.corp_var != cd.choice_var:
+                corp_map = cd.corp_map()
         elif div_choices_var not in cd.data.columns:
             raise KeyError("""div_choices_var not in cd.data""")
         else:
@@ -730,7 +729,7 @@ class DiscreteChoice():
             
         div_shares = pd.DataFrame(index=all_choices)
         for diversion in div_choices:
-            if div_choices_var is None:
+            if div_choices_var is None and cd.corp_var != cd.choice_var:
                 div_list = list(corp_map[corp_map[cd.corp_var].isin([diversion])][cd.choice_var])
             else:
                 div_list = [diversion]

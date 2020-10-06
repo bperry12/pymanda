@@ -391,18 +391,18 @@ def semi_cd():
     return semi_cd
 
 @pytest.fixture
-def semi_cd_system(semi_cd):
+def semi_cd_corp(semi_cd):
     df= semi_cd.data.copy()
     df['corp'] = df['choice']
-    choices = ['z' for x in range(300)] + ['y' for x in range(260)]
-    choices += ['x' for x in range(110)] + ['w' for x in range(110)]
-    choices += ['v' for x in range(110)] + ['u' for x in range(110)]
+    choices = ['u' for x in range(300)] + ['v' for x in range(260)]
+    choices += ['w' for x in range(110)] + ['x' for x in range(110)]
+    choices += ['y' for x in range(110)] + ['z' for x in range(110)]
     
     df['choice'] = choices
     
-    semi_cd_system = ChoiceData(df, 'choice', corp_var='corp')
+    semi_cd_corp = ChoiceData(df, 'choice', corp_var='corp')
     
-    return semi_cd_system
+    return semi_cd_corp
 
 @pytest.fixture
 def semi_dc():
@@ -482,3 +482,32 @@ def test_DC_semiparm_diversion_2choice(semi_dc, semi_cd):
                           index = ['a', 'b', 'c'])
     
     assert test.round(decimals=4).equals(actual)
+
+def test_DC_semiparam_fit_corp(semi_dc, semi_cd_corp):
+    
+    semi_dc.fit(semi_cd_corp)
+    choice_probs = semi_dc.predict(semi_cd_corp)
+    
+    test = semi_dc.diversion(semi_cd_corp, choice_probs, div_choices=['a', 'b', 'c'])
+    
+    actual = pd.DataFrame({'a': [np.NaN, np.NaN, .1143, .3, .2571, .3286],
+                           'b': [.3259, .2032, np.NaN, np.NaN, .1778, .2931],
+                           'c': [.3788, .3117, .2576, .0519, np.NaN, np.NaN]},
+                          index = ['u', 'v', 'w', 'x', 'y', 'z'])
+    
+    assert test.round(decimals=4).equals(actual)
+    
+def test_DC_semiparam_fit_div_shares_col(semi_dc, semi_cd_corp):
+    
+    semi_dc.fit(semi_cd_corp)
+    choice_probs = semi_dc.predict(semi_cd_corp)
+    
+    test = semi_dc.diversion(semi_cd_corp, choice_probs, div_choices=['u'], div_choices_var = semi_cd_corp.choice_var)
+    
+    actual = pd.DataFrame({'u': [np.NaN, .0952, .2041, .1905, .4592, .051]},
+                          index = ['u', 'v', 'w', 'x', 'y', 'z'])
+    
+    assert test.round(decimals=4).equals(actual)  
+
+
+    

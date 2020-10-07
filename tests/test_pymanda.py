@@ -568,7 +568,7 @@ def test_upp(semi_cd, semi_dc):
     
     actual = pd.DataFrame({'upp_a': .1036,
                           'upp_b': .2646,
-                          'avg_upp': .1841},
+                          'avg_upp': .1490},
                           index = [0])
     assert test.round(decimals=4).equals(actual)
 
@@ -590,6 +590,6 @@ def test_upp_corp(semi_cd_corp, semi_dc):
     
     actual = pd.DataFrame({'upp_a': .1036,
                           'upp_b': .2646,
-                          'avg_upp': .1841},
+                          'avg_upp': .1490},
                           index = [0])
     assert test.round(decimals=4).equals(actual)

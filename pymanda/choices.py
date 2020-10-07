@@ -4,6 +4,7 @@ import numpy as np
 from sklearn.preprocessing import LabelBinarizer
 import warnings
 
+
 """
 ChoiceData
 ---------
@@ -82,8 +83,30 @@ class ChoiceData():
         for nonull in [choice_var, corp_var]:
             if len(data[data['choice'] == ''].index) != 0:
                 raise ValueError ('''{} has missing values'''.format(nonull))
+     
+    def corp_map(self):
+        """
+        Utility fuction to map corporation and choices in self.data
+
+        Raises
+        ------
+        RuntimeError
+            When self.corp_var is not different than choice_var.
+
+        Returns
+        -------
+        corp_map : pandas.core.frame.DataFrame
+            2 column data frame with corporation name and choice names.
+
+        """
+        if self.corp_var == self.choice_var:
+            raise RuntimeError('''corp_map should only be called when self.corp_var is defined and different than self.choice_var''')
+        corp_map = self.data.groupby([self.corp_var, self.choice_var]).count()
+        corp_map = corp_map.reset_index()
+        corp_map = corp_map[[self.corp_var, self.choice_var]]
         
-        
+        return corp_map
+    
     def estimate_psa(self, centers, threshold=[.75, .9]):
         """
         Return a dictionary idenftifying geographies in a choice's Primary 
@@ -491,8 +514,7 @@ class DiscreteChoice():
         copy_x=True,
         coef_order= None,
         verbose= False,
-        min_bin= 25,
-        corp_var = True):
+        min_bin= 25):
         
         self.params = {'solver' : solver,
                        'copy_x' : True,
@@ -505,7 +527,6 @@ class DiscreteChoice():
         self.coef_order = coef_order
         self.verbose = verbose
         self.min_bin = min_bin
-        self.corp_var = corp_var
         
         current_solvers = ['semiparametric']
         if solver not in current_solvers:
@@ -527,7 +548,27 @@ class DiscreteChoice():
         if min_bin <= 0:
             raise ValueError('''min_bin must be greater than 0''') 
     
-    def fit(self, cd):
+    def check_is_fitted(self):
+        """
+        Verify that an Instance has been fitted
+
+        Returns
+        -------
+        None.
+        
+        Raises
+        ------
+        RuntimeError
+            If instance is not fitted.
+
+        """
+        
+        try:
+            self.coef_
+        except AttributeError:
+            raise RuntimeError('''Instance of DiscreteChoice is not fitted''')
+    
+    def fit(self, cd, use_corp=False):
         """
         Fit Estimator using ChoiceData and specified solver
 
@@ -535,13 +576,6 @@ class DiscreteChoice():
         ----------
         cd : pymanda.ChoiceData Object
             Contains data to be fitted using DiscreteChoice
-        corp_var : Boolean, optional
-            Whether to fit using cd.corp_var. The default is False which uses cd.choice_var.
-
-        Returns
-        -------
-        y_hat : pandas.core.frame.DataFrame
-            Returns ChoiceData observations with group and diversion probabilities.
 
         """
         
@@ -552,11 +586,12 @@ class DiscreteChoice():
             if coef not in cd.data.columns:
                 raise KeyError ('''{} is not a column in ChoiceData'''.format(coef))
                 
-        if self.corp_var:
+        if use_corp:
             choice= cd.corp_var
         else:
             choice= cd.choice_var
-            
+
+        # currently only supports 'semiparametric' solver. Added solvers should use elif statement
         if self.solver=='semiparametric':
             X = cd.data[self.coef_order + [choice]].copy()
                     
@@ -583,8 +618,10 @@ class DiscreteChoice():
             # group ungroupables
             X.loc[X['group']=="",'group'] = "ungrouped"
             
-            X = X[['choice', 'group', 'grouped']].pivot_table(index='group', columns='choice', aggfunc='count', fill_value=0)
+            # converts from observations to group descriptions
+            X = X[[choice] + ['group', 'grouped']].pivot_table(index='group', columns=choice, aggfunc='count', fill_value=0)
             
+            #convert from counts to shares
             X['rowsum'] = X.sum(axis=1)
             for x in X.columns:
                 X[x] = X[x] / X['rowsum']
@@ -605,7 +642,7 @@ class DiscreteChoice():
 
         Returns
         -------
-        y_hat : pandas.core.frame.DataFrame
+        choice_probs : pandas.core.frame.DataFrame
             Dataframe of predictions for each choice.
             When solver ='semiparametric', each row contains probabilities of 
             going to any of the choices.
@@ -613,7 +650,9 @@ class DiscreteChoice():
         """
         # if type(cd) !=  pymanda.ChoiceData:
         #     raise TypeError ('''Expected type pymanda.choices.ChoiceData Got {}'''.format(type(cd)))
-            
+
+        self.check_is_fitted()
+        
         if self.solver == 'semiparametric':
             
             #group based on groups
@@ -628,13 +667,13 @@ class DiscreteChoice():
             X.loc[X['group']=="",'group'] = "ungrouped"
             X = X['group']
             
-            y_hat = pd.merge(X, self.coef_, how='left', on='group')
-            y_hat = y_hat.drop(columns=['group'])            
+            choice_probs = pd.merge(X, self.coef_, how='left', on='group')
+            choice_probs = choice_probs.drop(columns=['group'])            
             
         
-        return y_hat
+        return choice_probs
 
-    def diversion(self, cd, y_hat, choices):
+    def diversion(self, cd, choice_probs, div_choices, div_choices_var=None):
         '''
         Calculate diversions given a DataFrame of observations with diversion
         probabilities
@@ -644,10 +683,10 @@ class DiscreteChoice():
         cd: pymanda.ChoiceData
             ChoiceData to calculate diversions on.
 
-        y_hat : pandas.core.frame.DataFrame
+        choice_probs : pandas.core.frame.DataFrame
             DataFrame of observations with diversion probabilities.
             
-        choices : list
+        div_choices : list
             list of choices to calculate diversions for.
 
         Returns
@@ -660,39 +699,45 @@ class DiscreteChoice():
         # if type(cd) !=  pymanda.ChoiceData:
         #     raise TypeError ('''Expected type pymanda.choices.ChoiceData Got {}'''.format(type(cd)))
         
-        if type(choices) != list and choices is not None:
-            raise TypeError('''choices is expected to be list. got {}'''.format(type(choices)))
-        
-        if type(y_hat) != pd.core.frame.DataFrame:
-            raise TypeError ('''Expected Type pandas.core.frame.DataFrame. Got {}'''.format(type(y_hat)))
-        
-        if self.corp_var:
-            choice = cd.corp_var
-        else:
-            choice = cd.choice_var
-        
-        if len(y_hat) != len(cd.data):
-            raise ValueError('''length of y_hat and cd.data should be the same''')
-            
-        y_hat['choice'] = cd.data[cd.choice_var]
-        
-        all_choices = list(y_hat['choice'].unique())
-        for c in all_choices:
-            if c not in y_hat.columns:
-                raise KeyError ('''{} is not a column in ChoiceData'''.format(c))
-        
-        if type(choices) != list:
-            raise TypeError ('''choices expected list. Got {}'''.format(type(choices)))
-        
-        if len(choices) == 0:
+        if type(div_choices) != list and div_choices is not None:
+            raise TypeError('''choices is expected to be list. Got {}'''.format(type(div_choices)))
+        if len(div_choices) == 0:
             raise ValueError ('''choices must have atleast a length of 1''')
             
+        if type(choice_probs) != pd.core.frame.DataFrame:
+            raise TypeError ('''Expected Type pandas.core.frame.DataFrame. Got {}'''.format(type(choice_probs)))
+        
+        if div_choices_var is None:
+            choice = cd.choice_var
+            if cd.corp_var != cd.choice_var:
+                corp_map = cd.corp_map()
+        elif div_choices_var not in cd.data.columns:
+            raise KeyError("""div_choices_var not in cd.data""")
+        else:
+            choice = div_choices_var
+                    
+        if len(choice_probs) != len(cd.data):
+            raise ValueError('''length of choice_probs and cd.data should be the same''')
+            
+        choice_probs['choice'] = cd.data[choice]
+        
+        all_choices = list(choice_probs['choice'].unique())
+            
+        for c in all_choices:
+            if c not in choice_probs.columns:
+                raise KeyError ('''{} is not a column in choice_probs'''.format(c))
+            
         div_shares = pd.DataFrame(index=all_choices)
-        for choice in choices:
-            df = y_hat[y_hat['choice']==choice].copy()
+        for diversion in div_choices:
+            if div_choices_var is None and cd.corp_var != cd.choice_var:
+                div_list = list(corp_map[corp_map[cd.corp_var].isin([diversion])][cd.choice_var])
+            else:
+                div_list = [diversion]
+                
+            df = choice_probs[choice_probs['choice'].isin(div_list)].copy()
             
             all_choice_temp = all_choices.copy()
-            all_choice_temp.remove(choice)
+            all_choice_temp = [x for x in all_choice_temp if x not in div_list]
             
             df = df[all_choice_temp]
             df['rowsum'] = df.sum(axis=1)
@@ -702,7 +747,7 @@ class DiscreteChoice():
             df = df.sum()
             df = df / df.sum()
 
-            df.name = choice
+            df.name = diversion
             div_shares = div_shares.merge(df, how='left', left_index=True, right_index=True)    
         
         return div_shares

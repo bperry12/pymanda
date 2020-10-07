@@ -783,18 +783,18 @@ class DiscreteChoice():
             if tran not in choice_probs.columns:
                 raise KeyError ('''{} is not a choice in choice_probs'''.format(tran))
         
-        if self.solver == 'semiparametric':
-            wtp_df = choice_probs[trans_list].copy()
-            wtp_df['combined'] = wtp_df.sum(axis=1)
-            
-            if (wtp_df==1).any().any():
-                warnings.warn('''A diversion probability for a bin equals 1 which will result in infinite WTP.''' , RuntimeWarning)
-            
-            with warnings.catch_warnings(record = True): # prevents redundant warning for np.log(0)
-                wtp_df = -1 * np.log(1- wtp_df) # -1 * ln(1-prob)
-            
-            wtp_df = wtp_df.sum().to_frame().transpose()
-            
-            wtp_df['wtp_change'] = (wtp_df['combined'] - wtp_df[trans_list].sum(axis = 1)) /  wtp_df[trans_list].sum(axis = 1)
+
+        wtp_df = choice_probs[trans_list].copy()
+        wtp_df['combined'] = wtp_df.sum(axis=1)
         
+        if (wtp_df==1).any().any():
+            warnings.warn('''A diversion probability for a bin equals 1 which will result in infinite WTP.''' , RuntimeWarning)
+        
+        with warnings.catch_warnings(record = True): # prevents redundant warning for np.log(0)
+            wtp_df = -1 * np.log(1- wtp_df) # -1 * ln(1-prob)
+        
+        wtp_df = wtp_df.sum().to_frame().transpose()
+        
+        wtp_df['wtp_change'] = (wtp_df['combined'] - wtp_df[trans_list].sum(axis = 1)) /  wtp_df[trans_list].sum(axis = 1)
+    
         return wtp_df

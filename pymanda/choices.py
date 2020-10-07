@@ -752,7 +752,7 @@ class DiscreteChoice():
         
         return div_shares
     
-    def wtp_change(self, y_hat, trans_list):
+    def wtp_change(self, choice_probs, trans_list):
         '''
         Calculate the change in Willingness to Pay (WTP) for a combined entity
         given a DataFrame of predictions
@@ -762,7 +762,7 @@ class DiscreteChoice():
         trans_list: list
             List of choices to calculate WTP change on
 
-        y_hat : pandas.core.frame.DataFrame
+        choice_probs : pandas.core.frame.DataFrame
             DataFrame of observations with diversion probabilities.
 
         Returns
@@ -780,11 +780,11 @@ class DiscreteChoice():
             raise ValueError ('''trans_list needs atleast 2 choices''')
         
         for tran in trans_list:
-            if tran not in y_hat.columns:
-                raise KeyError ('''{} is not a choice in y_hat'''.format(tran))
+            if tran not in choice_probs.columns:
+                raise KeyError ('''{} is not a choice in choice_probs'''.format(tran))
         
         if self.solver == 'semiparametric':
-            wtp_df = y_hat[trans_list].copy()
+            wtp_df = choice_probs[trans_list].copy()
             wtp_df['combined'] = wtp_df.sum(axis=1)
             
             if (wtp_df==1).any().any():

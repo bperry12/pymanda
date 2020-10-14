@@ -435,7 +435,7 @@ class ChoiceData():
             
         return output_dict
     
-    def hhi_change(self, trans_list, shares, trans_var=None, share_col="share")
+    def hhi_change(self, trans_list, shares, trans_var=None, share_col="share"):
         """
         Calculates change in Herfindahl-Hirschman Index (HHI) from combining 
         a set of choices.

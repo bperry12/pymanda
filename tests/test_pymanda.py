@@ -548,7 +548,7 @@ def test_DC_semiparam_predict_wght(semi_dc, semi_cd_wght, semi_div):
 
     actual = actual.merge(semi_div, how='left', on='group')
     actual = actual.drop(columns=['group', 'weight'])
-    
+
     assert test.round(decimals=4).equals(actual)
 
 #tests for diversions    

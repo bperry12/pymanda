@@ -194,8 +194,8 @@ def dictionary_comparison(dict1, dict2):
         raise ValueError("Comparisons have 0 Keys")
     
     matches = []
-    if dict1.keys == dict2.keys:
-        for key in dict1.keys:
+    if dict1.keys() == dict2.keys():
+        for key in dict1.keys():
             matches.append(dict1[key].equals(dict2[key])) 
     
     return all(matches)

@@ -328,9 +328,11 @@ class ChoiceData():
         for key in psa_dict.keys():
             df = self.data.copy(deep=True)
             
+            redefine_weight=False
             if weight_var is None:
                 df['count'] = 1
                 weight_var = 'count'
+                redefine_weight=True
                 
             if restriction is not None:
                 df = df[restriction]
@@ -346,6 +348,9 @@ class ChoiceData():
             
             df_shares = df_shares.rename(columns = {weight_var: 'share'})
             output_dict.update({key: df_shares})
+            
+            if redefine_weight:
+                weight_var = None
 
         return output_dict
     

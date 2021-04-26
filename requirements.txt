@@ -6,5 +6,5 @@ pytest-cov==2.11.1
 coveralls==3.0.1
 black==21.4b0
 pandas==1.2.4
-scikit-learn==0.23.2
+scikit-learn==0.24.1
 numpy==1.19.1
